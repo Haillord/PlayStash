@@ -1,0 +1,86 @@
+# pubspec.yaml
+
+name: game_tracker
+description: A simple game tracking app.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Сеть и кэш
+  http: ^1.1.0
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.3.1
+  flutter_dotenv: ^5.1.0
+
+  # Навигация и ссылки
+  url_launcher: ^6.3.0
+  webview_flutter: ^4.0.7
+
+  # Хранение данных
+  shared_preferences: ^2.3.0
+  path_provider: ^2.1.1
+
+  # Галерея и изображения
+  photo_view: ^0.14.0
+  palette_generator: ^0.3.3
+
+  # Уведомления
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.4
+
+  # UI и анимации
+  flutter_staggered_grid_view: ^0.7.0
+  shimmer: ^2.0.0
+  pull_to_refresh: ^2.0.0
+  cupertino_icons: ^1.0.8
+
+  # Локализация
+  intl: ^0.20.2
+
+  # Утилиты
+  async: ^2.11.0
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Реклама (отключена)
+  #yandex_mobileads: ^7.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+  build_runner: ^2.4.9
+  workmanager: ^0.9.0+3
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/.env
+    - assets/icon/icon.png
+
+  fonts:
+    - family: PressStart2P
+      fonts:
+        - asset: assets/fonts/press_start_2p.ttf
+    - family: RobotoMono
+      fonts:
+        - asset: assets/fonts/RobotoMono-Regular.ttf
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#0A0A0F"
+  adaptive_icon_foreground: "assets/icon/icon.png"
