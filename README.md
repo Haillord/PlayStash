@@ -67,7 +67,7 @@
   <img src="https://img.shields.io/badge/Flutter-3.22-02569B?style=for-the-badge&logo=flutter&logoColor=white"/>
   <img src="https://img.shields.io/badge/Dart-3-0175C2?style=for-the-badge&logo=dart&logoColor=white"/>
   <img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black"/>
-  <img src="https://img.shields.io/badge/Riverpod-9B59FF?style=for-the-badge&logoColor=white"/>
+  <img src="https://img.shields.io/badge/Riverpod-9B59FF?style=for-the-badge&logoColor=white"/> 
   <img src="https://img.shields.io/badge/Groq_AI-00A67E?style=for-the-badge&logoColor=white"/>
   <img src="https://img.shields.io/badge/AdMob-EA4335?style=for-the-badge&logo=google&logoColor=white"/>
   <img src="https://img.shields.io/badge/Isar-1a1a1a?style=for-the-badge&logoColor=white"/>
