@@ -4,7 +4,7 @@ import colorsys
 
 # Параметры
 WIDTH = 16
-HEIGHT = 2300
+HEIGHT = 2450
 FRAMES = 90
 
 frames_left = []
