@@ -1,10 +1,5 @@
-<table>
-<tr>
-<td width="10" valign="top"><img src="neon_left_v2.gif" width="10"></td>
-<td>
-
 <p align="center">
-  <img src="banner.png" width="100%" alt="GameStash Banner">
+  <img src="banner.svg" width="100%" alt="PlayStash Banner">
 </p>
 
 <p align="center">
@@ -100,8 +95,3 @@ flutter run
   <img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="firebase">
   <img src="https://img.shields.io/badge/Developer-Haillord-blue?style=for-the-badge&logo=telegram" alt="author">
 </p>
-
-</td>
-<td width="10" valign="top"><img src="neon_right.gif" width="10"></td>
-</tr>
-</table>
