@@ -3,6 +3,10 @@
 </p>
 
 <p align="center">
+  <img src="banner.png" width="100%" alt="GameStash Banner">
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/github/license/Haillord/gamestash?style=for-the-badge&color=blue" alt="license">
   <img src="https://img.shields.io/github/stars/Haillord/gamestash?style=for-the-badge&color=blue" alt="stars">
   <img src="https://img.shields.io/github/actions/workflow/status/Haillord/gamestash/build.yml?style=for-the-badge&label=Build" alt="build">
