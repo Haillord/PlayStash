@@ -1,19 +1,20 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:game_tracker/models/game.dart';
-import 'package:game_tracker/providers/providers.dart';
-import 'package:game_tracker/theme/app_theme.dart';
-import 'package:game_tracker/utils/breakpoints.dart';
-import 'package:game_tracker/utils/constants.dart';
-import 'package:game_tracker/widgets/connection_indicator.dart';
-import 'package:game_tracker/widgets/glass_app_bar.dart';
+import 'package:game_stash/models/game.dart';
+import 'package:game_stash/providers/auth_provider.dart';
+import 'package:game_stash/providers/providers.dart';
+import 'package:game_stash/screens/auth_screen.dart';
+import 'package:game_stash/theme/app_theme.dart';
+import 'package:game_stash/utils/constants.dart';
+import 'package:game_stash/widgets/connection_indicator.dart';
+import 'package:game_stash/widgets/glass_app_bar.dart';
 import 'game_details_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:game_tracker/services/cache_service.dart';
-import 'package:game_tracker/services/storage_service.dart'; // ADDED
+import 'package:game_stash/services/cache_service.dart';
+import 'package:game_stash/services/storage_service.dart'; // ADDED
+import 'package:game_stash/services/ad_service.dart';
 
 // ---------------------------------------------------------------------------
-// Модель бейджа
 // ---------------------------------------------------------------------------
 
 class _Badge {
@@ -42,50 +43,50 @@ List<_Badge> _computeBadges(List<Game> games) {
     _Badge(
       id: 'first_finish',
       emoji: '🏆',
-      title: 'Первое прохождение',
-      description: 'Пройди первую игру',
+      title: 'Первый финиш',
+      description: 'Пройти первую игру',
       unlocked: finished >= 1,
     ),
     _Badge(
       id: 'finisher_10',
       emoji: '🎮',
-      title: 'Завершитель',
-      description: 'Пройди 10 игр',
+      title: 'Финишер',
+      description: 'Пройти 10 игр',
       unlocked: finished >= 10,
     ),
     _Badge(
       id: 'finisher_50',
       emoji: '👑',
       title: 'Легенда',
-      description: 'Пройди 50 игр',
+      description: 'Пройти 50 игр',
       unlocked: finished >= 50,
     ),
     _Badge(
       id: 'collector_25',
       emoji: '📚',
       title: 'Коллекционер',
-      description: 'Добавь 25 игр в коллекцию',
+      description: 'Добавить 25 игр в коллекцию',
       unlocked: total >= 25,
     ),
     _Badge(
       id: 'collector_100',
-      emoji: '🗄️',
+      emoji: '🗂️',
       title: 'Архивариус',
-      description: 'Добавь 100 игр в коллекцию',
+      description: 'Добавить 100 игр в коллекцию',
       unlocked: total >= 100,
     ),
     _Badge(
       id: 'no_drop',
       emoji: '💪',
-      title: 'Железная воля',
-      description: 'Процент брошенных игр < 10%',
+      title: 'Сильная воля',
+      description: 'Доля брошенных игр < 10%',
       unlocked: total >= 5 && dropRate < 0.1,
     ),
     _Badge(
       id: 'playing_now',
       emoji: '🕹️',
       title: 'В процессе',
-      description: 'Играй в 3 игры одновременно',
+      description: 'Играть в 3 игры одновременно',
       unlocked:
           games.where((g) => g.status == GameStatus.playing).length >= 3,
     ),
@@ -93,7 +94,6 @@ List<_Badge> _computeBadges(List<Game> games) {
 }
 
 // ---------------------------------------------------------------------------
-// Вычисление любимого жанра и платформы
 // ---------------------------------------------------------------------------
 
 String? _favoriteGenre(List<Game> games) {
@@ -121,7 +121,6 @@ String? _favoritePlatform(List<Game> games) {
 }
 
 // ---------------------------------------------------------------------------
-// Данные графика активности (кол-во игр добавлено по месяцам за 12 мес.)
 // ---------------------------------------------------------------------------
 
 List<int> _activityByMonth(List<Game> games) {
@@ -156,11 +155,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
-
-  // Избранные игры — id → Game
   final Map<int, Game> _favorites = {};
-
-  // Шапка со статистикой — по умолчанию свёрнута
   bool _statsExpanded = false;
 
   @override
@@ -170,8 +165,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
-
-    // ADDED: загружаем избранные из хранилища при старте
     final saved = LocalStorageService.getFavorites();
     for (final game in saved) {
       _favorites[game.id] = game;
@@ -186,13 +179,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     super.dispose();
   }
 
-  void _openGameDetails(Game game, bool isDark) {
+  Future<void> _openGameDetails(Game game, bool isDark) async {
+    if (!mounted) return;
+    // Переходим сразу — без ожидания рекламы.
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => GameDetailsScreen(game: game, isDark: isDark),
       ),
     );
+    AdService.instance.onGameOpened(context);
   }
 
   void _toggleFavorite(Game game) {
@@ -209,7 +205,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         _favorites[game.id] = game;
       }
     });
-    // ADDED: сохраняем после каждого изменения
     LocalStorageService.saveFavorites(_favorites.values.toList());
   }
 
@@ -256,7 +251,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                badge.unlocked ? '✓ Получено' : '🔒 Не получено',
+                badge.unlocked ? 'Открыто' : 'Закрыто',
                 style: TextStyle(
                   color: badge.unlocked ? kNeonGreen : Colors.grey,
                   fontWeight: FontWeight.w600,
@@ -275,7 +270,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     super.build(context);
 
     final isDark = ref.watch(themeModeProvider) == AppThemeMode.dark;
-    final myGamesAsync = ref.watch(myGamesProvider);
+    // Используем myGamesNotifierProvider (StateNotifier) вместо myGamesProvider
+    // (FutureProvider), чтобы данные автоматически обновлялись при вызове updateGame.
+    final myGamesAsync = ref.watch(myGamesNotifierProvider);
     final connection = ref.watch(connectionStatusProvider);
     final textColorSecondary =
         isDark ? Colors.white70 : kTextColorSecondaryLight;
@@ -289,7 +286,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 focusNode: _searchFocusNode,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Поиск в коллекции...',
+                  hintText: 'Поиск по коллекции...',
                   border: InputBorder.none,
                   hintStyle: TextStyle(
                     color: isDark ? Colors.white54 : Colors.black54,
@@ -346,8 +343,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         children: [
           ConnectionIndicator(
             status: connection,
-            onRetry: () => ref.invalidate(myGamesProvider),
+            onRetry: () => ref.read(myGamesNotifierProvider.notifier).refresh(),
           ),
+          _AuthSyncBanner(isDark: isDark),
           Expanded(
             child: myGamesAsync.when(
               data: (games) => TabBarView(
@@ -365,7 +363,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       isDark: isDark,
                       favorites: _favorites,
                       onGameTap: (game) => _openGameDetails(game, isDark),
-                      onRefresh: () async => ref.invalidate(myGamesProvider),
+                      onRefresh: () async => ref.read(myGamesNotifierProvider.notifier).refresh(),
                       onToggleFavorite: _toggleFavorite,
                       searchQuery: _searchQuery,
                       headerGames: games,
@@ -399,8 +397,155 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 }
 
+
+class _AuthSyncBanner extends ConsumerWidget {
+  final bool isDark;
+
+  const _AuthSyncBanner({required this.isDark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(authUserProvider);
+    final syncStatus = ref.watch(syncStatusProvider);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.15)
+              : Colors.white.withValues(alpha: 0.6),
+          width: 1.2,
+        ),
+      ),
+      child: userAsync.when(
+        loading: () => const Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 10),
+            Text('Проверка аккаунта...'),
+          ],
+        ),
+        error: (_, __) => const Text('Не удалось загрузить статус аккаунта'),
+        data: (user) {
+          final signedIn = user != null && !user.isAnonymous;
+          if (!signedIn) {
+            return Row(
+              children: [
+                const Icon(Icons.cloud_off, color: kWarningColor, size: 20),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Войдите, чтобы включить облачную синхронизацию',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AuthScreen()),
+                    );
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: kNeonGreen,
+                    foregroundColor: Colors.black,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: const Text('Войти'),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Icon(_syncIcon(syncStatus), color: _syncColor(syncStatus), size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.email ?? 'Выполнен вход',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      _syncLabel(syncStatus),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  );
+                },
+                child: const Text('Аккаунт'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  static IconData _syncIcon(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.syncing:
+        return Icons.sync;
+      case SyncStatus.done:
+        return Icons.cloud_done;
+      case SyncStatus.error:
+        return Icons.cloud_off;
+      case SyncStatus.idle:
+        return Icons.cloud_outlined;
+    }
+  }
+
+  static Color _syncColor(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.syncing:
+        return kAccent;
+      case SyncStatus.done:
+        return kSuccessColor;
+      case SyncStatus.error:
+        return kErrorColor;
+      case SyncStatus.idle:
+        return kTextColorSecondaryLight;
+    }
+  }
+
+  static String _syncLabel(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.syncing:
+        return 'Синхронизация...';
+      case SyncStatus.done:
+        return 'Синхронизировано';
+      case SyncStatus.error:
+        return 'Ошибка синхронизации';
+      case SyncStatus.idle:
+        return 'Ожидание синхронизации';
+    }
+  }
+}
 // ---------------------------------------------------------------------------
-// _CollapsibleHeader — сворачиваемая шапка со статистикой
 // ---------------------------------------------------------------------------
 
 class _CollapsibleHeader extends StatelessWidget {
@@ -488,7 +633,6 @@ class _CollapsibleHeader extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// _ProfileStats — сетка 2×2
 // ---------------------------------------------------------------------------
 
 class _ProfileStats extends StatelessWidget {
@@ -531,7 +675,7 @@ class _ProfileStats extends StatelessWidget {
             children: [
               Expanded(
                 child: _StatTile(
-                  label: 'В планах',
+                  label: 'Planned',
                   count: want,
                   icon: Icons.bookmark_add,
                   color: Colors.blue,
@@ -541,7 +685,7 @@ class _ProfileStats extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _StatTile(
-                  label: 'Играю',
+                  label: 'Playing',
                   count: playing,
                   icon: Icons.play_circle_fill,
                   color: kNeonGreen,
@@ -555,7 +699,7 @@ class _ProfileStats extends StatelessWidget {
             children: [
               Expanded(
                 child: _StatTile(
-                  label: 'Прошёл',
+                  label: 'Finished',
                   count: finished,
                   icon: Icons.check_circle,
                   color: Colors.green,
@@ -565,7 +709,7 @@ class _ProfileStats extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _StatTile(
-                  label: 'Бросил',
+                  label: 'Dropped',
                   count: dropped,
                   icon: Icons.cancel,
                   color: Colors.red,
@@ -643,7 +787,6 @@ class _StatTile extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// _FavoriteChips — любимый жанр и платформа
 // ---------------------------------------------------------------------------
 
 class _FavoriteChips extends StatelessWidget {
@@ -734,7 +877,6 @@ class _InfoChip extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// _BadgesRow — горизонтальный скролл бейджей
 // ---------------------------------------------------------------------------
 
 class _BadgesRow extends StatelessWidget {
@@ -833,7 +975,6 @@ class _BadgesRow extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// _ActivityChart — бар-чарт активности за 12 месяцев
 // ---------------------------------------------------------------------------
 
 class _ActivityChart extends StatelessWidget {
@@ -876,7 +1017,7 @@ class _ActivityChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Активность за год',
+            'Активность (12 месяцев)',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -1222,7 +1363,7 @@ class _GamesTabContent extends StatelessWidget {
       return CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: header),
-          SliverFillRemaining(
+          SliverFillRemaining(hasScrollBody: false,
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1318,7 +1459,7 @@ class _FavoritesTabContent extends StatelessWidget {
       return CustomScrollView(
         slivers: [
           SliverToBoxAdapter(child: header),
-          SliverFillRemaining(
+          SliverFillRemaining(hasScrollBody: false,
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1328,7 +1469,7 @@ class _FavoritesTabContent extends StatelessWidget {
                       color: isDark ? Colors.white24 : Colors.grey.shade300),
                   const SizedBox(height: 12),
                   Text(
-                    'Удержи игру, чтобы добавить в избранное',
+                    'Удерживай игру, чтобы добавить в избранное',
                     style: TextStyle(
                         color: isDark ? Colors.white54 : Colors.grey),
                     textAlign: TextAlign.center,

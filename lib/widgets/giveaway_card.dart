@@ -13,9 +13,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
-import 'package:game_tracker/models/giveaway.dart';
-import 'package:game_tracker/utils/constants.dart';
-import 'package:game_tracker/services/cache_service.dart';
+import 'package:game_stash/models/giveaway.dart';
+import 'package:game_stash/utils/constants.dart';
+import 'package:game_stash/services/cache_service.dart';
 
 final _dateFormat = DateFormat('dd.MM');
 

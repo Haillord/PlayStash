@@ -10,7 +10,6 @@
 
 import 'dart:convert';
 import 'dart:math';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/game.dart';
 import '../models/genre.dart';
@@ -264,7 +263,7 @@ class GameRepository {
     try {
       final response = await http
           .get(uri)
-          .timeout(Duration(seconds: _timeoutSeconds));
+          .timeout(const Duration(seconds: _timeoutSeconds));
 
       if (response.statusCode != 200) {
         throw Exception('RAWG API error: ${response.statusCode}');
@@ -278,7 +277,7 @@ class GameRepository {
       int nextPage = page + 1;
       if (hasMore) {
         try {
-          final nextUri = Uri.parse(nextUrl!);
+          final nextUri = Uri.parse(nextUrl);
           final nextPageParam = nextUri.queryParameters['page'];
           if (nextPageParam != null) {
             nextPage = int.parse(nextPageParam);
@@ -333,7 +332,7 @@ class GameRepository {
       int nextPage = page + 1;
       if (hasMore) {
         try {
-          final nextUri = Uri.parse(nextUrl!);
+          final nextUri = Uri.parse(nextUrl);
           final nextPageParam = nextUri.queryParameters['page'];
           if (nextPageParam != null) {
             nextPage = int.parse(nextPageParam);

@@ -1,34 +1,15 @@
-// lib/services/giveaway_worker.dart
-//
-// Фоновая задача WorkManager — проверяет новые раздачи раз в день.
-// При появлении новых (которых не было в прошлую проверку) — стреляет
-// уведомлением с названием, платформой, стоимостью и сроком.
-//
-// ЗАВИСИМОСТИ — добавить в pubspec.yaml:
-//   workmanager: ^0.5.2
-//
-// ИНИЦИАЛИЗАЦИЯ в main.dart:
-//   await GiveawayWorker.init();
-//
-// AndroidManifest.xml — добавить внутри <application>:
-//   <service
-//     android:name="be.tramckrijte.workmanager.BackgroundWorker"
-//     android:permission="android.permission.BIND_JOB_SERVICE"
-//     android:exported="true"/>
+﻿import 'dart:convert';
 
-import 'dart:convert';
-import 'package:workmanager/workmanager.dart';
+import 'package:game_stash/models/giveaway.dart';
+import 'package:game_stash/services/api_service.dart';
+import 'package:game_stash/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:game_tracker/models/giveaway.dart';
-import 'package:game_tracker/services/api_service.dart';
-import 'package:game_tracker/screens/game_details_screen.dart'
-    show NotificationService;
+import 'package:workmanager/workmanager.dart';
 
 const _taskName = 'check_new_giveaways';
 const _taskTag = 'giveaway_check';
 const _seenIdsKey = 'giveaway_seen_ids';
 
-// Точка входа для фонового воркера — должна быть top-level функцией
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((taskName, inputData) async {
@@ -44,34 +25,35 @@ Future<void> _checkNewGiveaways() async {
     await NotificationService.instance.init();
     final prefs = await SharedPreferences.getInstance();
 
-    // Загружаем текущие раздачи с API
     final giveaways = await GameRepository.fetchGiveaways();
     if (giveaways.isEmpty) return;
 
-    // Читаем ID которые уже видели
     final seenJson = prefs.getString(_seenIdsKey);
     final seenIds = seenJson != null
         ? Set<int>.from((jsonDecode(seenJson) as List).cast<int>())
         : <int>{};
 
-    // Фильтруем новые активные раздачи
+    // First run: store a snapshot and do not notify.
+    if (seenIds.isEmpty) {
+      final initialIds = giveaways.map((g) => g.id).toList();
+      await prefs.setString(_seenIdsKey, jsonEncode(initialIds));
+      return;
+    }
+
     final newGiveaways = giveaways.where((g) {
       final isNew = !seenIds.contains(g.id);
-      final isActive =
-          g.endDate == null || g.endDate!.isAfter(DateTime.now());
+      final isActive = g.endDate == null || g.endDate!.isAfter(DateTime.now());
       return isNew && isActive;
     }).toList();
 
-    // Стреляем уведомлением если есть новые
     if (newGiveaways.isNotEmpty) {
       await _sendNotification(newGiveaways);
     }
 
-    // Сохраняем все текущие ID как виденные
     final allIds = giveaways.map((g) => g.id).toList();
     await prefs.setString(_seenIdsKey, jsonEncode(allIds));
-  } catch (e) {
-    // Молча глотаем ошибки — фоновая задача не должна крашить приложение
+  } catch (_) {
+    // Background task errors should not crash app.
   }
 }
 
@@ -80,36 +62,37 @@ Future<void> _sendNotification(List<Giveaway> newGiveaways) async {
   final count = newGiveaways.length;
 
   if (count == 1) {
-    // Одна раздача — показываем детали
     final g = newGiveaways.first;
     final platform = g.platforms.split(',').first.trim();
     final worth = (g.worth != null && g.worth != 'N/A') ? g.worth! : null;
-    final daysLeft = g.endDate != null
-        ? g.endDate!.difference(DateTime.now()).inDays
-        : null;
+    final daysLeft = g.endDate?.difference(DateTime.now()).inDays;
 
     final lines = <String>[
-      '🕹️ $platform',
-      if (worth != null) '💰 Было $worth → Бесплатно',
-      if (daysLeft != null && daysLeft >= 0) '⏳ Осталось $daysLeft дн.',
+      g.title,
+      'Платформа: $platform',
+      if (worth != null) 'Цена: $worth -> Бесплатно',
+      if (daysLeft != null && daysLeft >= 0) 'Осталось: $daysLeft дн.',
     ];
 
+    // Уникальный ID на основе временной метки — уведомления не перезаписывают друг друга.
+    final notifId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     await ns.sendImmediateNotification(
-      id: 3000000,
-      title: '🎁 Новая раздача: ${g.title}',
-      body: lines.join('  •  '),
+      id: notifId,
+      title: 'Новая раздача! Не упусти 🎁',
+      body: lines.join(' • '),
       channelId: 'giveaway_channel',
       channelName: 'Новые раздачи',
     );
   } else {
-    // Несколько раздач — сводное уведомление
     final titles = newGiveaways.take(3).map((g) => g.title).join(', ');
     final suffix = count > 3 ? ' и ещё ${count - 3}' : '';
 
+    // Уникальный ID на основе временной метки.
+    final notifId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     await ns.sendImmediateNotification(
-      id: 3000000,
-      title: '🎁 $count новых раздачи!',
-      body: '$titles$suffix',
+      id: notifId,
+      title: 'Появились новые раздачи 🎁',
+      body: '$count новых раздач: $titles$suffix. Не упусти.',
       channelId: 'giveaway_channel',
       channelName: 'Новые раздачи',
     );
@@ -119,20 +102,12 @@ Future<void> _sendNotification(List<Giveaway> newGiveaways) async {
 class GiveawayWorker {
   GiveawayWorker._();
 
-  /// Инициализация и регистрация фоновой задачи.
-  /// Вызвать один раз в main() после WidgetsFlutterBinding.ensureInitialized().
   static Future<void> init() async {
-    await Workmanager().initialize(
-      callbackDispatcher,
-      isInDebugMode: false,
-    );
+    await Workmanager().initialize(callbackDispatcher);
 
     await Workmanager().registerPeriodicTask(
       _taskTag,
       _taskName,
-      // Минимальный период для WorkManager — 15 минут,
-      // но реально Android запускает раз в день при неактивном устройстве.
-      // Для раздач это идеально.
       frequency: const Duration(hours: 24),
       constraints: Constraints(
         networkType: NetworkType.connected,
@@ -141,7 +116,6 @@ class GiveawayWorker {
     );
   }
 
-  /// Принудительная разовая проверка — для отладки или pull-to-refresh.
   static Future<void> checkNow() async {
     await Workmanager().registerOneOffTask(
       '${_taskTag}_now',
@@ -150,7 +124,6 @@ class GiveawayWorker {
     );
   }
 
-  /// Отменить фоновую задачу (например если пользователь отключил уведомления).
   static Future<void> cancel() async {
     await Workmanager().cancelByTag(_taskTag);
   }

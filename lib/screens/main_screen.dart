@@ -1,12 +1,15 @@
+// lib/screens/main_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:game_tracker/providers/providers.dart';
-import 'package:game_tracker/theme/app_theme.dart';
-import 'package:game_tracker/screens/game_list_screen.dart';
-import 'package:game_tracker/screens/profile_screen.dart';
-import 'package:game_tracker/screens/settings_screen.dart';
-import 'package:game_tracker/screens/ai_assistant_screen.dart';
-import 'package:game_tracker/utils/constants.dart';
+import 'package:game_stash/providers/providers.dart';
+import 'package:game_stash/theme/app_theme.dart';
+import 'package:game_stash/screens/game_list_screen.dart';
+import 'package:game_stash/screens/profile_screen.dart';
+import 'package:game_stash/screens/settings_screen.dart';
+import 'package:game_stash/screens/ai_assistant_screen.dart';
+import 'package:game_stash/utils/constants.dart';
+import 'package:game_stash/widgets/banner_ad_widget.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,24 +21,40 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // Экраны создаются один раз. Порядок: Игры, Профиль, AI, Настройки
+  // const-список — виджеты создаются один раз и живут в IndexedStack.
   static const _screens = [
     GameListScreen(),
     ProfileScreen(),
-    AIAssistantScreen(),   // AI теперь на втором месте (индекс 2)
-    SettingsScreen(),      // Настройки теперь на третьем (индекс 3)
+    AIAssistantScreen(),
+    SettingsScreen(),
   ];
+
+  void _onTabTap(int index) {
+    if (index == _currentIndex) return; // не тригерим setState без смены таба
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // IndexedStack сохраняет состояние всех экранов — не пересоздаёт их.
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: _BottomNav(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+      // BannerAdWidget и _BottomNav разделены через Column внутри bottomNavigationBar.
+      // Ключ репейнта изолирует баннер — он не пересоздаётся при смене вкладки.
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const RepaintBoundary(
+            child: BannerAdWidget(),
+          ),
+          _BottomNav(
+            currentIndex: _currentIndex,
+            onTap: _onTabTap,
+          ),
+        ],
       ),
     );
   }
@@ -49,7 +68,10 @@ class _BottomNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = ref.watch(themeModeProvider) == AppThemeMode.dark;
+    // select() — ребилд только при смене тёмной/светлой темы, не при других изменениях.
+    final isDark = ref.watch(
+      themeModeProvider.select((m) => m == AppThemeMode.dark),
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -65,7 +87,8 @@ class _BottomNav extends ConsumerWidget {
         onTap: onTap,
         backgroundColor: isDark ? kCardColorDark : kCardColorLight,
         selectedItemColor: kAccent,
-        unselectedItemColor: isDark ? kTextColorSecondaryDark : kTextColorSecondaryLight,
+        unselectedItemColor:
+            isDark ? kTextColorSecondaryDark : kTextColorSecondaryLight,
         selectedLabelStyle:
             const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(fontSize: 11),

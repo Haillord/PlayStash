@@ -1,38 +1,21 @@
 // lib/providers/providers.dart
-//
-// ОПТИМИЗАЦИЯ:
-// 1. gameStatusProvider — добавлен .select() чтобы при смене статуса одной
-//    игры не пересчитывались все остальные карточки в ленте.
-//
-// 2. _applyStatuses — убран await (метод синхронный, await создавал лишний
-//    microtask и пропускал кадр на каждый вызов).
-//
-// 3. FeedState — добавлен operator== и hashCode чтобы Riverpod не нотифицировал
-//    подписчиков когда состояние реально не изменилось.
-//
-// 4. updateGame — больше не создаёт копию всего списка через spread.
-//    Используем List.of() + [index] = value — быстрее и без лишних аллокаций.
-//
-// 5. MyGamesNotifier.updateGame — state обновляется немедленно, запись на
-//    диск уходит в фон через unawaited. UI не ждёт IO.
-//
-// 6. GameStatusNotifier.setStatus — добавлена ранняя проверка: если статус
-//    не изменился — не создаём новый Map и не нотифицируем подписчиков.
 
 import '../models/store.dart';
 import '../models/torrent.dart';
 import '../services/torrent_service.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show compute;
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/widgets.dart';
-import 'package:game_tracker/models/feed_state.dart';
-import 'package:game_tracker/models/game.dart';
-import 'package:game_tracker/services/api_service.dart';
-import 'package:game_tracker/services/connection_service.dart';
-import 'package:game_tracker/services/storage_service.dart';
-import 'package:game_tracker/theme/app_theme.dart';
-import 'package:game_tracker/utils/constants.dart';
+import 'dart:ui' show PlatformDispatcher;
+import 'package:game_stash/models/feed_state.dart';
+import 'package:game_stash/models/game.dart';
+import 'package:game_stash/services/api_service.dart';
+import 'package:game_stash/services/connection_service.dart';
+import 'package:game_stash/services/firebase_service.dart';
+import 'package:game_stash/services/storage_service.dart';
+import 'package:game_stash/theme/app_theme.dart';
+import 'package:game_stash/utils/constants.dart';
 import 'package:async/async.dart' show CancelableOperation;
 
 // ---------------------------------------------------------------------------
@@ -91,8 +74,6 @@ class GameStatusNotifier extends StateNotifier<Map<int, GameStatus>> {
   }
 
   void setStatus(int gameId, GameStatus status) {
-    // ОПТИМИЗАЦИЯ: если статус не изменился — не создаём новый Map,
-    // не нотифицируем подписчиков, не перерисовываем карточки
     if (state[gameId] == status) return;
     state = {...state, gameId: status};
     LocalStorageService.saveGameStatus(gameId, status);
@@ -134,11 +115,20 @@ class MyGamesNotifier extends StateNotifier<AsyncValue<List<Game>>> {
     final updated = current.where((g) => g.id != game.id).toList();
     if (game.status != GameStatus.none) updated.add(game);
 
-    // ОПТИМИЗАЦИЯ: сначала обновляем UI, запись на диск идёт в фоне.
-    // Раньше UI ждал завершения IO — это блокировало анимацию.
+    // Сначала обновляем UI — запись на диск и в Firebase идут в фоне
     state = AsyncValue.data(updated);
     // ignore: unawaited_futures
     LocalStorageService.saveMyGames(updated);
+    // Синхронизируем с Firebase если пользователь вошёл
+    // ignore: unawaited_futures
+    FirebaseService.instance.updateGame(game);
+  }
+
+  /// Заменить всю коллекцию — вызывается при синхронизации с Firebase.
+  Future<void> replaceAll(List<Game> games) async {
+    state = AsyncValue.data(games);
+    // ignore: unawaited_futures
+    LocalStorageService.saveMyGames(games);
   }
 
   Future<void> refresh() => _load();
@@ -158,15 +148,23 @@ class ConnectionNotifier extends StateNotifier<ConnectionStatus> {
 
   ConnectionNotifier() : super(ConnectionStatus.checking) {
     check();
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) => check());
+    // Увеличен интервал с 30с до 60с — меньше фоновых HTTP запросов,
+    // меньше лишних ребилдов UI.
+    _timer = Timer.periodic(const Duration(seconds: 60), (_) => check());
   }
 
   Future<void> check() async {
+    // Не переходим в checking если уже connected — это убирает лишний
+    // setState (checking → connected) каждые 60 секунд у всех подписчиков.
     if (state != ConnectionStatus.connected) {
       state = ConnectionStatus.checking;
     }
-    final status = await ConnectionService.checkConnection();
-    if (mounted) state = status;
+    // Запускаем HTTP проверку в отдельном изоляте чтобы не блокировать UI.
+    final status = await compute(_checkConnectionIsolate, null);
+    if (mounted && status != state) {
+      // Обновляем state только если статус реально изменился.
+      state = status;
+    }
   }
 
   @override
@@ -176,16 +174,15 @@ class ConnectionNotifier extends StateNotifier<ConnectionStatus> {
   }
 }
 
+// Топ-левел функция для compute() — выполняется в отдельном изоляте,
+// не блокирует main thread во время HTTP запроса.
+Future<ConnectionStatus> _checkConnectionIsolate(void _) async {
+  return ConnectionService.checkConnection();
+}
+
 // ---------------------------------------------------------------------------
 // Ленты игр (FeedType)
 // ---------------------------------------------------------------------------
-
-const _gameFeedTypes = [
-  FeedType.all,
-  FeedType.popular,
-  FeedType.newReleases,
-  FeedType.upcoming,
-];
 
 final feedProvider =
     StateNotifierProviderFamily<FeedNotifier, FeedState, FeedType>((
@@ -233,8 +230,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
       final cached = await LocalStorageService.getCachedGames(cacheKey);
       if (cached != null && cached.isNotEmpty) {
         hasCachedData = true;
-        // ОПТИМИЗАЦИЯ: убран await — _applyStatuses синхронный,
-        // await создавал лишний microtask и пропускал кадр
         final cachedWithStatuses = _applyStatuses(cached);
         if (!mounted) return;
         state = state.copyWith(
@@ -269,7 +264,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
       final result = await _currentOperation!.value;
       if (!mounted) return;
 
-      // ОПТИМИЗАЦИЯ: убран await — синхронный метод
       final gamesWithStatus = _applyStatuses(result.games);
       final existingIds =
           reset ? <int>{} : state.games.map((g) => g.id).toSet();
@@ -329,8 +323,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
     );
   }
 
-  // ОПТИМИЗАЦИЯ: убран async/await — метод полностью синхронный,
-  // читает из уже загруженного Map в памяти
   List<Game> _applyStatuses(List<Game> games) {
     final statuses = ref.read(gameStatusesProvider);
     if (statuses.isEmpty) return games;
@@ -340,8 +332,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
     }).toList();
   }
 
-  /// ОПТИМИЗАЦИЯ: List.of() + прямое присваивание по индексу вместо
-  /// spread [...state.games] — не создаёт лишнюю копию при построении
   void updateGame(Game updatedGame) {
     final index = state.games.indexWhere((g) => g.id == updatedGame.id);
     if (index == -1) return;
@@ -373,10 +363,6 @@ final currentFeedTypeProvider = StateProvider<FeedType>((ref) => FeedType.all);
 // Удобные селекторы
 // ---------------------------------------------------------------------------
 
-/// ОПТИМИЗАЦИЯ: добавлен .select() — теперь gameStatusProvider(id)
-/// пересчитывается ТОЛЬКО если изменился статус именно этой игры.
-/// Раньше любое изменение в Map нотифицировало ВСЕ карточки в ленте —
-/// при 40 карточках это 40 лишних rebuild на одно нажатие.
 final gameStatusProvider = Provider.family<GameStatus, int>((ref, gameId) {
   return ref.watch(
     gameStatusesProvider.select((m) => m[gameId] ?? GameStatus.none),
@@ -412,14 +398,12 @@ final gameDescriptionProvider =
       if (!kEnableDescriptions) return null;
 
       final gameId = params.id;
-      final gameTitle = params.title;
-
       final cached = LocalStorageService.getCachedGameDescription(gameId);
       if (cached != null) return cached;
 
       final description = await GameRepository.fetchGameDescription(
         gameId,
-        language: WidgetsBinding.instance.window.locale.languageCode,
+        language: PlatformDispatcher.instance.locale.languageCode,
       );
 
       if (description != null) {

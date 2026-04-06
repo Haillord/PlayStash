@@ -1,8 +1,8 @@
 // lib/widgets/connection_indicator.dart
 
 import 'package:flutter/material.dart';
-import 'package:game_tracker/services/connection_service.dart';
-import 'package:game_tracker/utils/constants.dart';
+import 'package:game_stash/services/connection_service.dart';
+import 'package:game_stash/utils/constants.dart';
 
 class ConnectionIndicator extends StatelessWidget {
   final ConnectionStatus status;

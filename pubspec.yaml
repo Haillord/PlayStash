@@ -1,6 +1,6 @@
 # pubspec.yaml
 
-name: game_tracker
+name: game_stash
 description: A simple game tracking app.
 publish_to: "none"
 version: 1.0.0+1
@@ -13,9 +13,10 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+    
 
   # Сеть и кэш
-  http: ^1.1.0
+  http: ^1.2.0
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.3.1
   flutter_dotenv: ^5.1.0
@@ -51,8 +52,19 @@ dependencies:
   # State management
   flutter_riverpod: ^2.5.1
 
-  # Реклама (отключена)
-  #yandex_mobileads: ^7.18.0
+  # Фоновые задачи
+  workmanager: ^0.9.0+3
+
+  # ── Firebase ──────────────────────────────────────────────────────────────
+  firebase_core: ^3.3.0
+  firebase_analytics: ^11.2.0
+  firebase_messaging: ^15.1.0
+  cloud_firestore: ^5.2.0
+  firebase_auth: ^5.1.0
+  google_sign_in: ^6.2.1
+
+  # ── Яндекс реклама ────────────────────────────────────────────────────────
+  yandex_mobileads: ^7.18.0
 
 dev_dependencies:
   flutter_test:
@@ -60,7 +72,6 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
   build_runner: ^2.4.9
-  workmanager: ^0.9.0+3
 
 flutter:
   uses-material-design: true
@@ -79,7 +90,7 @@ flutter:
 
 flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "assets/icon/icon.png"
   min_sdk_android: 21
   adaptive_icon_background: "#0A0A0F"

@@ -1,25 +1,43 @@
+// lib/main.dart
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:game_tracker/screens/main_screen.dart';
-import 'package:game_tracker/screens/game_details_screen.dart';
-import 'package:game_tracker/services/giveaway_worker.dart';
-import 'package:game_tracker/theme/app_theme.dart';
-import 'package:game_tracker/services/storage_service.dart';
-import 'package:game_tracker/providers/providers.dart';
+import 'package:game_stash/screens/main_screen.dart';
+import 'package:game_stash/services/ad_service.dart';
+import 'package:game_stash/services/firebase_service.dart';
+import 'package:game_stash/services/giveaway_worker.dart';
+import 'package:game_stash/services/notification_service.dart';
+import 'package:game_stash/theme/app_theme.dart';
+import 'package:game_stash/services/storage_service.dart';
+import 'package:game_stash/providers/providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: "assets/.env");
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+  ));
+
+  await dotenv.load(fileName: 'assets/.env');
   await LocalStorageService.init();
 
-  // Уведомления для игр и раздач
-  await NotificationService.instance.init();
+  // Firebase — инициализируем до всего остального
+  await Firebase.initializeApp();
+  await FirebaseService.instance.init();
 
-  // Фоновая проверка новых раздач раз в день
+  await NotificationService.instance.init();
   await GiveawayWorker.init();
+
+  // Яндекс реклама
+  await AdService.instance.init();
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -38,7 +56,10 @@ class MyApp extends ConsumerWidget {
       themeMode: themeMode == AppThemeMode.dark
           ? ThemeMode.dark
           : ThemeMode.light,
-      // поддерживаем русский, чтобы Localizations.localeOf возвращал 'ru'
+      scrollBehavior: const _NoGlowScrollBehavior(),
+      navigatorObservers: [
+        FirebaseService.instance.observer,
+      ],
       supportedLocales: const [
         Locale('en', 'US'),
         Locale('ru', 'RU'),
@@ -46,5 +67,18 @@ class MyApp extends ConsumerWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: const MainScreen(),
     );
+  }
+}
+
+class _NoGlowScrollBehavior extends ScrollBehavior {
+  const _NoGlowScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }

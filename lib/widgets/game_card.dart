@@ -1,15 +1,5 @@
-// lib/widgets/game_card.dart
+﻿// lib/widgets/game_card.dart
 //
-// ОПТИМИЗАЦИЯ:
-// - isDark убран из всей цепочки пропов (_GameOverlay, _StatusBadge,
-//   _StatusMenuSheet) — каждый виджет читает тему сам через Theme.of(context)
-// - _GenreChip удалён (мёртвый код)
-// - Логика смены статуса вынесена в applyGameStatus() — не дублируется
-// - _GameImage: isDark убран, placeholder — const-виджеты
-// - _GradientOverlay: декорация вынесена в static const
-// - _MetacriticBadge: цвет вычисляется один раз в build, не дважды
-// - _StatusBadge: убран isDark-проп, тема читается в _StatusMenuSheet
-// - RepaintBoundary остаётся внутри карточки
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -18,10 +8,9 @@ import '../models/game.dart';
 import '../utils/constants.dart';
 import '../services/cache_service.dart';
 import '../providers/providers.dart';
-import 'package:game_tracker/models/feed_state.dart';
+import 'package:game_stash/models/feed_state.dart';
 
 // ---------------------------------------------------------------------------
-// Общий список фидов для обновления статуса
 // ---------------------------------------------------------------------------
 const _gameFeedTypes = [
   FeedType.all,
@@ -31,7 +20,6 @@ const _gameFeedTypes = [
 ];
 
 // ---------------------------------------------------------------------------
-// Хелпер смены статуса — единственное место логики, без дублирования
 // ---------------------------------------------------------------------------
 void applyGameStatus(
   BuildContext context,
@@ -65,8 +53,6 @@ class GameCard extends ConsumerWidget {
   final Game game;
   final VoidCallback onTap;
   final bool showStatus;
-
-  // isDark оставлен для обратной совместимости, игнорируется
   // ignore: avoid_unused_constructor_parameters
   const GameCard({
     super.key,
@@ -79,8 +65,10 @@ class GameCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Следим только за статусом конкретной игры — не за всем провайдером
-    final status = ref.watch(gameStatusProvider(game.id));
+    // Не подписываемся на gameStatusProvider здесь — статус приходит
+    // через game.status, который уже обновляется в feedProvider.updateGame.
+    // Лишний watch заставлял перестраивать ВСЕ видимые карточки при любом
+    // изменении статуса любой игры.
 
     return RepaintBoundary(
       child: GestureDetector(
@@ -89,10 +77,6 @@ class GameCard extends ConsumerWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             color: isDark ? kCardColorDark : kCardColorLight,
-            // ОПТИМИЗАЦИЯ: BoxShadow и gradient убраны — главная причина
-            // высокого Raster time (23ms→~8ms). В гриде из 20+ карточек
-            // GPU не успевал рисовать размытые тени на каждом кадре.
-            // Border остаётся — рисуется бесплатно.
             border: Border.all(
               color: isDark
                   ? const Color(0x1AFFFFFF) // white 10%
@@ -104,7 +88,7 @@ class GameCard extends ConsumerWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _GameImage(coverUrl: game.coverUrl),
+              _GameImage(coverUrl: game.coverUrl, gameId: game.id),
               const _GradientOverlay(),
               _GameInfo(game: game),
               _GameOverlay(game: game),
@@ -120,8 +104,9 @@ class GameCard extends ConsumerWidget {
 
 class _GameImage extends StatelessWidget {
   final String? coverUrl;
+  final int gameId;
 
-  const _GameImage({required this.coverUrl});
+  const _GameImage({required this.coverUrl, required this.gameId});
 
   static const _placeholder = ColoredBox(
     color: kPlaceholderColor,
@@ -151,18 +136,21 @@ class _GameImage extends StatelessWidget {
     if (url == null || url.isEmpty) return _placeholder;
 
     return Positioned.fill(
-      child: CachedNetworkImage(
-        imageUrl: url,
-        fit: BoxFit.cover,
-        cacheManager: GameImageCacheManager(),
-        memCacheWidth: 200,
-        memCacheHeight: 280,
-        filterQuality: FilterQuality.low,
-        placeholder: (_, __) => _loadingPlaceholder,
-        errorWidget: (_, __, ___) => _placeholder,
-        fadeInDuration: const Duration(milliseconds: 200),
-        fadeOutDuration: const Duration(milliseconds: 100),
-        useOldImageOnUrlChange: true,
+      child: Hero(
+        tag: 'game_$gameId',
+        child: CachedNetworkImage(
+          imageUrl: url,
+          fit: BoxFit.cover,
+          cacheManager: GameImageCacheManager(),
+          memCacheWidth: 200,
+          memCacheHeight: 280,
+          filterQuality: FilterQuality.medium,
+          placeholder: (_, __) => _loadingPlaceholder,
+          errorWidget: (_, __, ___) => _placeholder,
+          fadeInDuration: const Duration(milliseconds: 120),
+          fadeOutDuration: Duration.zero,
+          useOldImageOnUrlChange: true,
+        ),
       ),
     );
   }
@@ -408,4 +396,3 @@ class _RatingBadge extends StatelessWidget {
     );
   }
 }
-

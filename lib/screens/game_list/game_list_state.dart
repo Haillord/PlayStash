@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:game_tracker/models/feed_state.dart';
-import 'package:game_tracker/models/genre.dart';
-import 'package:game_tracker/providers/giveaways_provider.dart';
-import 'package:game_tracker/providers/providers.dart';
-import 'package:game_tracker/services/connection_service.dart';
+import 'package:game_stash/models/feed_state.dart';
+import 'package:game_stash/models/genre.dart';
+import 'package:game_stash/providers/giveaways_provider.dart';
+import 'package:game_stash/providers/providers.dart';
+import 'package:game_stash/services/connection_service.dart';
 
 const List<Genre> gameListAllGenres = [
   Genre(id: 5, name: 'RPG', icon: '⚔️', type: FilterType.genre),
@@ -87,10 +87,14 @@ final gameListIsSearchingProvider = StateProvider<bool>((ref) => false);
 final gameListGiveawayPlatformProvider = StateProvider<String?>((ref) => null);
 final gameListGiveawayTypeProvider = StateProvider<String?>((ref) => null);
 
-// Видимость баннера оффлайн — вычисляется один раз, не в каждом build
+// Видимость баннера оффлайн.
+// select() на connectionStatusProvider — пересчёт только при переходе
+// connected ↔ disconnected, не при каждом checking.
 final gameListShowOfflineBannerProvider = Provider<bool>((ref) {
-  final connection = ref.watch(connectionStatusProvider);
-  if (connection != ConnectionStatus.disconnected) return false;
+  final isDisconnected = ref.watch(
+    connectionStatusProvider.select((s) => s == ConnectionStatus.disconnected),
+  );
+  if (!isDisconnected) return false;
 
   final currentFeed = ref.watch(currentFeedTypeProvider);
   if (currentFeed == FeedType.giveaways) {

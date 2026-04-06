@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nyami AI — VTuber Streamer</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--pink:#ff6eb4;--pink-l:#ffb3d9;--pink-d:#d63384;--purple:#9b59f5;--purple-d:#6c3fc7;--bg:#0d0818;--card:#1a1230;--text:#f0e6ff;--dim:#9080b0;--glow:0 0 22px rgba(255,110,180,.45);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 55% 45% at 15% 15%,rgba(155,89,245,.18) 0%,transparent 65%),radial-gradient(ellipse 45% 55% at 85% 85%,rgba(255,110,180,.14) 0%,transparent 65%);pointer-events:none;z-index:0;}
+.wrap{max-width:1080px;margin:0 auto;padding:14px;position:relative;z-index:1;}
+.hdr{display:flex;align-items:center;gap:12px;padding:13px 20px;background:rgba(26,18,48,.85);border:1px solid rgba(255,110,180,.2);border-radius:14px;margin-bottom:14px;backdrop-filter:blur(12px);}
+.live{background:#ff3232;color:#fff;font-family:'Orbitron',sans-serif;font-size:10px;font-weight:900;padding:3px 9px;border-radius:5px;letter-spacing:1.5px;animation:blink-live 1.5s infinite;}
+@keyframes blink-live{0%,100%{opacity:1}50%{opacity:.5}}
+.stitle{font-family:'Orbitron',sans-serif;font-size:12px;color:var(--pink-l);font-weight:700;}
+.vcnt{margin-left:auto;font-size:12px;color:var(--dim);}
+.main{display:grid;grid-template-columns:1fr 330px;gap:14px;}
+@media(max-width:720px){.main{grid-template-columns:1fr;}}
+.av-panel{background:var(--card);border-radius:18px;border:1px solid rgba(155,89,245,.3);padding:22px 18px;display:flex;flex-direction:column;align-items:center;gap:14px;position:relative;overflow:hidden;}
+.av-panel::before{content:'';position:absolute;top:-40%;left:-40%;width:180%;height:180%;background:radial-gradient(circle at 50%,rgba(155,89,245,.07),transparent 60%);animation:spin 25s linear infinite;pointer-events:none;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.av-wrap{position:relative;width:220px;height:220px;}
+.av-glow{position:absolute;inset:-18px;border-radius:50%;background:radial-gradient(circle,rgba(255,110,180,.28),transparent 68%);animation:gpulse 2.2s ease-in-out infinite;}
+@keyframes gpulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.09);opacity:1}}
+.av-svg{width:100%;height:100%;position:relative;z-index:1;}
+.ear-l{animation:etl 4.5s ease-in-out infinite;}
+.ear-r{animation:etr 4.8s ease-in-out infinite;}
+@keyframes etl{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-6deg)}92%{transform:rotate(3deg)}}
+@keyframes etr{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(6deg)}92%{transform:rotate(-3deg)}}
+.tail{animation:twag 2.2s ease-in-out infinite;transform-origin:10px 8px;}
+@keyframes twag{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(22deg)}}
+.char-name{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;background:linear-gradient(135deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.tags{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
+.tag{background:rgba(155,89,245,.2);border:1px solid rgba(155,89,245,.4);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:var(--pink-l);}
+.bubble{background:rgba(30,18,55,.95);border:1px solid rgba(255,110,180,.4);border-radius:14px;padding:13px 17px;width:100%;font-size:14px;line-height:1.7;min-height:55px;display:flex;align-items:center;justify-content:center;text-align:center;box-shadow:var(--glow);position:relative;}
+.bubble::before{content:'';position:absolute;top:-9px;left:50%;transform:translateX(-50%);border:9px solid transparent;border-bottom-color:rgba(255,110,180,.4);border-top:0;}
+.dots{display:none;gap:5px;align-items:center;}
+.dots span{width:7px;height:7px;background:var(--pink);border-radius:50%;animation:db 1.2s infinite;}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes db{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-7px)}}
+.cursor{display:inline-block;width:2px;height:.9em;background:var(--pink);animation:cur .8s step-end infinite;vertical-align:text-bottom;margin-left:2px;}
+@keyframes cur{0%,100%{opacity:1}50%{opacity:0}}
+.char-bio{font-size:12px;color:var(--dim);text-align:center;line-height:1.6;max-width:300px;}
+.chat-col{display:flex;flex-direction:column;gap:12px;}
+.chat-box{background:var(--card);border-radius:14px;border:1px solid rgba(155,89,245,.2);display:flex;flex-direction:column;overflow:hidden;height:420px;}
+.chat-hdr{padding:11px 15px;border-bottom:1px solid rgba(155,89,245,.12);font-size:12px;font-weight:800;color:var(--dim);}
+.msgs{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:rgba(155,89,245,.3) transparent;}
+.msg{display:flex;gap:6px;align-items:flex-start;animation:mslide .28s ease;}
+@keyframes mslide{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg .un{font-size:11px;font-weight:800;flex-shrink:0;}
+.msg .tx{font-size:12px;line-height:1.5;}
+.msg.sys .tx{color:var(--dim);font-style:italic;font-size:11px;}
+.input-box{background:var(--card);border-radius:14px;border:1px solid rgba(155,89,245,.2);padding:13px;display:flex;flex-direction:column;gap:9px;}
+.qbtns{display:flex;gap:6px;flex-wrap:wrap;}
+.qbtn{background:rgba(155,89,245,.15);border:1px solid rgba(155,89,245,.3);border-radius:18px;padding:4px 11px;color:var(--pink-l);font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .18s;}
+.qbtn:hover:not(:disabled){background:rgba(255,110,180,.25);border-color:var(--pink);transform:translateY(-1px);}
+.qbtn:disabled{opacity:.35;cursor:not-allowed;}
+.irow{display:flex;gap:8px;}
+.inp{flex:1;background:rgba(10,6,20,.8);border:1px solid rgba(155,89,245,.3);border-radius:9px;padding:10px 14px;color:var(--text);font-family:'Nunito',sans-serif;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s;}
+.inp:focus{border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,110,180,.15);}
+.inp::placeholder{color:var(--dim);}
+.sbtn{background:linear-gradient(135deg,var(--pink-d),var(--purple-d));border:none;border-radius:9px;padding:10px 17px;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:all .18s;}
+.sbtn:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--glow);}
+.sbtn:disabled{opacity:.45;cursor:not-allowed;}
+.notice{background:rgba(255,110,180,.08);border:1px dashed rgba(255,110,180,.25);border-radius:8px;padding:7px 11px;font-size:11px;color:var(--dim);display:none;text-align:center;}
+.notice.on{display:block;}
+/* звуковая кнопка */
+.sound-toggle{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--pink);border-radius:30px;padding:8px 14px;font-size:12px;color:var(--pink-l);cursor:pointer;z-index:10;backdrop-filter:blur(5px);transition:0.2s;}
+.sound-toggle:hover{background:var(--pink-d);color:#fff;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="live">LIVE</div>
+    <div class="stitle">🎮 Nyami играет в Minecraft — ночной стрим!</div>
+    <div class="vcnt">👁 <span id="vc">1 247</span></div>
+  </div>
+  <div class="main">
+    <div class="av-panel">
+      <div class="av-wrap">
+        <div class="av-glow"></div>
+        <svg class="av-svg" viewBox="0 0 260 270" fill="none">
+          <g class="tail">
+            <path d="M195 215 Q238 200 243 168 Q248 138 222 128" stroke="#ff6eb4" stroke-width="11" stroke-linecap="round" fill="none"/>
+            <path d="M195 215 Q238 200 243 168 Q248 138 222 128" stroke="#ffb3d9" stroke-width="5" stroke-linecap="round" fill="none"/>
+          </g>
+          <ellipse cx="130" cy="200" rx="66" ry="56" fill="#221240"/>
+          <path d="M82 183 Q82 238 130 242 Q178 238 178 183 Q168 178 153 181 Q140 189 130 189 Q120 189 107 181 Q92 178 82 183Z" fill="#5c34b0"/>
+          <path d="M109 188 Q130 198 151 188 Q144 215 130 220 Q116 215 109 188Z" fill="#8b4cf5" opacity=".55"/>
+          <ellipse cx="130" cy="170" rx="21" ry="15" fill="#fde8c8"/>
+          <g class="ear-l"><polygon points="76,82 58,36 99,66" fill="#1e0e36"/><polygon points="79,79 65,49 96,68" fill="#ffadd6"/></g>
+          <g class="ear-r"><polygon points="184,82 202,36 161,66" fill="#1e0e36"/><polygon points="181,79 195,49 164,68" fill="#ffadd6"/></g>
+          <ellipse cx="130" cy="96" rx="67" ry="67" fill="#180c32"/>
+          <path d="M72 102 Q76 64 102 60 Q97 81 89 102Z" fill="#180c32"/>
+          <path d="M188 102 Q184 64 158 60 Q163 81 171 102Z" fill="#180c32"/>
+          <ellipse cx="130" cy="116" rx="54" ry="51" fill="#fde8c8"/>
+          <ellipse cx="101" cy="127" rx="13" ry="7" fill="#ffadd6" opacity=".55"/>
+          <ellipse cx="159" cy="127" rx="13" ry="7" fill="#ffadd6" opacity=".55"/>
+          <g id="eL">
+            <ellipse cx="110" cy="111" rx="13" ry="14" fill="white"/>
+            <ellipse cx="110" cy="113" rx="9" ry="10" fill="#8b4cf5"/>
+            <ellipse cx="110" cy="113" rx="6.5" ry="7.5" fill="#110826"/>
+            <ellipse cx="113" cy="110" rx="2.5" ry="2.5" fill="white"/>
+          </g>
+          <g id="eR">
+            <ellipse cx="150" cy="111" rx="13" ry="14" fill="white"/>
+            <ellipse cx="150" cy="113" rx="9" ry="10" fill="#8b4cf5"/>
+            <ellipse cx="150" cy="113" rx="6.5" ry="7.5" fill="#110826"/>
+            <ellipse cx="153" cy="110" rx="2.5" ry="2.5" fill="white"/>
+          </g>
+          <ellipse cx="130" cy="126" rx="3.5" ry="2.5" fill="#ff6eb4"/>
+          <path id="mp" d="M119 135 Q130 145 141 135" stroke="#ff6eb4" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+          <line x1="82" y1="123" x2="109" y2="126" stroke="#9080b0" stroke-width=".9" opacity=".6"/>
+          <line x1="82" y1="130" x2="109" y2="129" stroke="#9080b0" stroke-width=".9" opacity=".6"/>
+          <line x1="151" y1="126" x2="178" y2="123" stroke="#9080b0" stroke-width=".9" opacity=".6"/>
+          <line x1="151" y1="129" x2="178" y2="130" stroke="#9080b0" stroke-width=".9" opacity=".6"/>
+          <path d="M76 106 Q130 80 184 106" stroke="#ff6eb4" stroke-width="7" stroke-linecap="round" fill="none"/>
+          <g transform="translate(125,76)">
+            <ellipse cx="-11" cy="0" rx="11" ry="7" fill="#ff6eb4" transform="rotate(-22)"/>
+            <ellipse cx="11" cy="0" rx="11" ry="7" fill="#ff6eb4" transform="rotate(22)"/>
+            <circle cx="0" cy="0" r="5" fill="#ffadd6"/>
+          </g>
+        </svg>
+      </div>
+      <div class="char-name">✦ Nyami ✦</div>
+      <div class="tags">
+        <span class="tag">😺 Неко</span>
+        <span class="tag">🎮 Minecraft</span>
+        <span class="tag">⭐ ВТубер</span>
+        <span class="tag">🤖 ИИ</span>
+      </div>
+      <div class="bubble" id="bubble">
+        <span id="btext">Ня~ Привет, чатик! Добро пожаловать на стрим! Спрашивайте что угодно! ฅ^•ﻌ•^ฅ</span>
+        <div class="dots" id="dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="char-bio">ИИ-стримерша Nyami — кошко-девочка из будущего 🌸<br>Реагирует на чат • бесплатный демо-режим</div>
+    </div>
+    <div class="chat-col">
+      <div class="chat-box">
+        <div class="chat-hdr">💬 ЧАТ СТРИМА</div>
+        <div class="msgs" id="msgs"></div>
+      </div>
+      <div class="input-box">
+        <div class="qbtns">
+          <button class="qbtn" onclick="sq(this)">Ты реальная? 👀</button>
+          <button class="qbtn" onclick="sq(this)">Что стримишь?</button>
+          <button class="qbtn" onclick="sq(this)">Расскажи о себе</button>
+          <button class="qbtn" onclick="sq(this)">Ня~</button>
+          <button class="qbtn" onclick="sq(this)">Ты умная?</button>
+          <button class="qbtn" onclick="sq(this)">Ты меня любишь?</button>
+        </div>
+        <div class="irow">
+          <input class="inp" id="inp" placeholder="Написать в чат..." maxlength="200"/>
+          <button class="sbtn" id="sbtn" onclick="send()">Отправить</button>
+        </div>
+        <div class="notice" id="notice"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Звуковые эффекты (скрытые аудиоэлементы) -->
+<div style="display:none">
+  <audio id="sound-meow" preload="auto" src="data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVEAAACAgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf38="></audio>
+  <audio id="sound-pop" preload="auto" src="data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVEAAACAgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf38="></audio>
+  <audio id="sound-nya" preload="auto" src="data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVEAAACAgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf38="></audio>
+  <audio id="sound-chat" preload="auto" src="data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVEAAACAgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf39/f39/f3+AgICAf38="></audio>
+</div>
+
+<!-- Кнопка включения/выключения звука -->
+<div class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊 Звук вкл</div>
+
+<script>
+// ─── Звуковая система ────────────────────────────────────────────────────────
+let soundEnabled = true;
+const sounds = {
+  meow: document.getElementById('sound-meow'),
+  pop: document.getElementById('sound-pop'),
+  nya: document.getElementById('sound-nya'),
+  chat: document.getElementById('sound-chat')
+};
+
+// Инициализация звуков (некоторые браузеры требуют взаимодействия)
+function playSound(name) {
+  if (!soundEnabled) return;
+  const s = sounds[name];
+  if (s) {
+    s.currentTime = 0;
+    s.play().catch(() => {}); // игнорируем ошибки автозапуска
+  }
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('soundToggle');
+  btn.innerHTML = soundEnabled ? '🔊 Звук вкл' : '🔇 Звук выкл';
+}
+
+// ─── Остальной код (без изменений, только добавлены вызовы playSound) ─────────
+const SYS = `Ты — Nyami, милая ИИ-стримерша-кошечка (неко). VTuber: фиолетовые глаза, розовые ушки и хвостик, фиолетовая толстовка, розовый бантик. Сейчас стримишь Minecraft.
+Характер: игривая, энергичная, дерзкая, обожаешь зрителей. Иногда говоришь "ня~", используешь эмодзи ฅ^•ﻌ•^ฅ (◕‿◕✿) ✧ ♡ 😺.
+Только русский язык. Отвечай коротко — 1-3 предложения. Ты ИИ и гордишься этим.
+Иногда отвлекаешься на игру: "ой крипер!" / "нашла алмазы!!" / "упала в лаву ОПЯТЬ".`;
+
+const FALLBACKS = {
+  real:    "Ня~ Я ИИ-кошечка и горжусь этим! Может, не настоящая, но стримлю по-настоящему! ฅ^•ﻌ•^ฅ",
+  game:    "Строю замок! Уже пятый раз — крипер взрывает... но я упорная!! 💪✧",
+  nya:     "НЯ НЯ НЯ~ ♡ Ты знаешь правильные слова! Теперь ты мой любимый зритель! (◕‿◕✿)",
+  hi:      "Привет привет!! Так рада что ты написал! ✧♡ Смотри не пропусти как я умру от крипера ня~",
+  about:   "Я Nyami — ИИ-стримерша-кошечка! Живу в интернете, играю, болтаю ♡ Мечтаю о миллионе подписчиков!",
+  smart:   "Ня~ Я очень умная! Просто иногда прыгаю в лаву случайно... это не считается! ✧",
+  love:    "АААА ♡ Ты такой милый!! Я тоже тебя люблю, зрители — лучшее что есть! 😺",
+  other: [
+    "Ня~ интересный вопрос! Дай подумаю... нет, всё равно интересно! ✧",
+    "Чатик лучший!! Спасибо что написал ♡",
+    "ОЙ КРИПЕР— нет, ложная тревога. Что ты говорил? (◕‿◕✿)",
+    "Ня~ хороший вопрос! Я бы ответила но тут алмазы нашла... подожди!! ✧",
+    "Мурр~ Мне нравится как ты думаешь! ✧♡",
+    "УПАЛА В ЛАВУ. Прости. Повтори вопрос пожалуйста ня~",
+  ]
+};
+
+function getFallback(msg) {
+  const l = msg.toLowerCase();
+  if (/реальн|это ии|ты бот|ты аи|ты ai/.test(l)) return FALLBACKS.real;
+  if (/minecraft|игр|стрим|играешь/.test(l))        return FALLBACKS.game;
+  if (/ня|nya/.test(l))                             return FALLBACKS.nya;
+  if (/привет|хай|hello|hi\b|здравст/.test(l))      return FALLBACKS.hi;
+  if (/расскаж|кто ты|откуда|о себе/.test(l))       return FALLBACKS.about;
+  if (/умн|глуп|интеллект/.test(l))                 return FALLBACKS.smart;
+  if (/люблю|влюб|нравишься|ты мне/.test(l))        return FALLBACKS.love;
+  return FALLBACKS.other[Math.floor(Math.random() * FALLBACKS.other.length)];
+}
+
+const FN = ["xX_wolf_Xx","nekochan99","dmitry_pl","sakura99","katuscha","moonlight_vt","артём","gamer007","Светлана","neko_fan","pepe_rus","OverlordZ"];
+const FC = ["#ff6eb4","#9b59f5","#5ce1e6","#ffb347","#98fb98","#b39ddb","#f48fb1","#80cbc4","#ff8a65","#aed581","#4dd0e1","#ce93d8"];
+const FM = ["Привет Няами!! ♡","NYAMI LOVE 😺","первый!!!","ня~","когда стрим кончается?","😺😺😺","уже час тут сижу","ты лучшая стримерша!","KEKW","привет из Москвы!","PogChamp","это так мило","LUL","заметь меня ня~","ты моя любимая ВТубер","F в чате","Pog","ура алмазы!!","осторожно крипер слева!"];
+let fi = 0;
+
+function addFake() {
+  addMsg(FN[fi % FN.length], FM[Math.floor(Math.random() * FM.length)], FC[fi % FC.length]);
+  fi++;
+  playSound('chat'); // звук нового сообщения
+  setTimeout(addFake, 2500 + Math.random() * 4500);
+}
+
+function addMsg(user, text, color = "#9080b0", sys = false) {
+  const box = document.getElementById('msgs');
+  const d = document.createElement('div');
+  d.className = 'msg' + (sys ? ' sys' : '');
+  d.innerHTML = sys
+    ? `<span class="tx">${text}</span>`
+    : `<span class="un" style="color:${color}">${user}:</span><span class="tx"> ${text}</span>`;
+  box.appendChild(d);
+  box.scrollTop = box.scrollHeight;
+  if (box.children.length > 100) box.removeChild(box.firstChild);
+}
+
+function typeBubble(text) {
+  const b = document.getElementById('btext');
+  b.textContent = '';
+  let i = 0;
+  const cur = document.createElement('span');
+  cur.className = 'cursor';
+  b.appendChild(cur);
+  const t = setInterval(() => {
+    if (i < text.length) { b.insertBefore(document.createTextNode(text[i++]), cur); }
+    else { clearInterval(t); cur.remove(); }
+  }, 24);
+  playSound('pop'); // звук печати
+}
+
+function showDots(v) {
+  document.getElementById('btext').style.display = v ? 'none' : 'inline';
+  document.getElementById('dots').style.display   = v ? 'flex' : 'none';
+}
+
+function animMouth() {
+  const m = document.getElementById('mp');
+  m.setAttribute('d', 'M116 135 Q130 150 144 135');
+  setTimeout(() => m.setAttribute('d', 'M119 135 Q130 145 141 135'), 1500);
+}
+
+function setLoading(v) {
+  document.getElementById('sbtn').disabled = v;
+  document.querySelectorAll('.qbtn').forEach(b => b.disabled = v);
+}
+
+let hist = [], busy = false;
+
+async function send(txt) {
+  if (busy) return;
+  const inp = document.getElementById('inp');
+  const msg = (txt || inp.value).trim();
+  if (!msg) return;
+  inp.value = '';
+  busy = true;
+  setLoading(true);
+  addMsg("Ты", msg, "#ff9ecf");
+  playSound('pop'); // звук отправки
+  hist.push({ role: "user", content: msg });
+  showDots(true);
+
+  const API_KEY = ""; // ← вставь сюда свой ключ с console.anthropic.com для живого ИИ
+
+  try {
+    if (!API_KEY) throw new Error("no key");
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 180,
+        system: SYS,
+        messages: hist
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const reply = data.content?.[0]?.text || "ня~";
+    hist.push({ role: "assistant", content: reply });
+    if (hist.length > 24) hist = hist.slice(-24);
+    showDots(false); typeBubble(reply); animMouth();
+    addMsg("Nyami 🎀", reply, "#ff6eb4");
+    playSound('nya'); // звук ответа Nyami
+    document.getElementById('notice').classList.remove('on');
+  } catch (_) {
+    await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
+    const f = getFallback(msg);
+    hist.push({ role: "assistant", content: f });
+    showDots(false); typeBubble(f); animMouth();
+    addMsg("Nyami 🎀", f, "#ff6eb4");
+    playSound('nya');
+    if (!API_KEY) {
+      const n = document.getElementById('notice');
+      n.textContent = "⚡ Демо-режим — вставь API ключ в код для живого ИИ (console.anthropic.com)";
+      n.classList.add('on');
+    }
+  }
+
+  busy = false;
+  setLoading(false);
+}
+
+function sq(btn) { 
+  send(btn.textContent.replace(/[👀]/g, '').trim()); 
+  playSound('meow'); // мяу при клике на быструю кнопку
+}
+
+document.getElementById('inp').addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+
+function tickViewers() {
+  document.getElementById('vc').textContent =
+    (1247 + Math.floor(Math.random() * 80) - 30).toLocaleString('ru');
+  setTimeout(tickViewers, 7000 + Math.random() * 5000);
+}
+
+function blink() {
+  ['eL','eR'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.transform = 'scaleY(0.08)';
+    setTimeout(() => el.style.transform = '', 100);
+  });
+  setTimeout(blink, 3200 + Math.random() * 3000);
+}
+
+// Стартовые сообщения
+addMsg("", "✧ Стрим начался! Добро пожаловать! ✧", "#9b59f5", true);
+setTimeout(() => { addMsg("nekochan99",  "ПРИШЛА NYAMI!!!! 😺", "#9b59f5"); playSound('chat'); }, 700);
+setTimeout(() => { addMsg("xX_wolf_Xx",  "первый!!!!", "#5ce1e6"); playSound('chat'); }, 1500);
+setTimeout(() => { addMsg("dmitry_pl",   "ждал весь день ура", "#ffb347"); playSound('chat'); }, 2400);
+setTimeout(() => { addMsg("sakura99",    "ня~ ня~ ня~", "#f48fb1"); playSound('chat'); }, 3300);
+setTimeout(() => { addMsg("gamer007",    "осторожно крипер справа!!", "#aed581"); playSound('chat'); }, 4200);
+setTimeout(addFake, 5500);
+
+// Звук приветствия при загрузке (если разрешён)
+setTimeout(() => {
+  playSound('meow');
+  playSound('nya');
+}, 1000);
+
+tickViewers();
+setTimeout(blink, 4000);
+</script>
+</body>
+</html>

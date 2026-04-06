@@ -13,7 +13,7 @@ class Game {
   final int? metacritic;
   final GameStatus status;
   final String? description;
-  final List<String> screenshots; // ADDED: поле для скриншотов
+  final List<String> screenshots;
 
   Game({
     required this.id,
@@ -26,7 +26,7 @@ class Game {
     this.metacritic,
     this.status = GameStatus.none,
     this.description,
-    this.screenshots = const [], // ADDED: по умолчанию пустой список
+    this.screenshots = const [],
   });
 
   Game copyWith({
@@ -40,7 +40,7 @@ class Game {
     int? metacritic,
     GameStatus? status,
     String? description,
-    List<String>? screenshots, // ADDED
+    List<String>? screenshots,
   }) {
     return Game(
       id: id ?? this.id,
@@ -53,9 +53,11 @@ class Game {
       metacritic: metacritic ?? this.metacritic,
       status: status ?? this.status,
       description: description ?? this.description,
-      screenshots: screenshots ?? this.screenshots, // ADDED
+      screenshots: screenshots ?? this.screenshots,
     );
   }
+
+  // ── JSON (локальное хранилище, SharedPreferences) ──────────────────────────
 
   Map<String, dynamic> toJson() {
     return {
@@ -69,7 +71,7 @@ class Game {
       'metacritic': metacritic,
       'status': status.index,
       'description': description,
-      'screenshots': screenshots, // ADDED
+      'screenshots': screenshots,
     };
   }
 
@@ -95,7 +97,57 @@ class Game {
       metacritic: json['metacritic'] as int?,
       status: GameStatus.values[safeStatusIndex],
       description: json['description'] as String?,
-      screenshots: (json['screenshots'] as List<dynamic>?)?.cast<String>() ?? [], // ADDED
+      screenshots: (json['screenshots'] as List<dynamic>?)?.cast<String>() ?? [],
+    );
+  }
+
+  // ── Firestore (облачная синхронизация) ─────────────────────────────────────
+
+  /// Сериализация для Firestore.
+  /// Статус хранится как строка ('want', 'playing', ...) — не индекс,
+  /// чтобы при добавлении новых статусов старые данные не сломались.
+  Map<String, dynamic> toFirestore() {
+    return {
+      'id': id,
+      'title': title,
+      'coverUrl': coverUrl,
+      'rating': rating,
+      'metacritic': metacritic,
+      'releaseDate': releaseDate?.toIso8601String(),
+      'platforms': platforms,
+      'genres': genres.map((g) => {'id': g.id, 'name': g.name}).toList(),
+      'status': status.name,
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
+  /// Десериализация из Firestore-документа.
+  factory Game.fromFirestore(Map<String, dynamic> data) {
+    final statusStr = data['status'] as String? ?? 'none';
+    final status = GameStatus.values.firstWhere(
+      (s) => s.name == statusStr,
+      orElse: () => GameStatus.none,
+    );
+
+    final genresList = (data['genres'] as List<dynamic>? ?? [])
+        .map((g) => Genre(
+              id: g['id'] as int,
+              name: g['name'] as String,
+            ))
+        .toList();
+
+    return Game(
+      id: data['id'] as int,
+      title: data['title'] as String? ?? '',
+      coverUrl: data['coverUrl'] as String?,
+      rating: (data['rating'] as num?)?.toDouble(),
+      metacritic: data['metacritic'] as int?,
+      releaseDate: data['releaseDate'] != null
+          ? DateTime.tryParse(data['releaseDate'] as String)
+          : null,
+      platforms: List<String>.from(data['platforms'] ?? []),
+      genres: genresList,
+      status: status,
     );
   }
 

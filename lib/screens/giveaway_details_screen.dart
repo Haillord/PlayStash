@@ -1,11 +1,10 @@
-// lib/screens/giveaway_details_screen.dart
+﻿// lib/screens/giveaway_details_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:game_tracker/models/giveaway.dart';
-import 'package:game_tracker/utils/constants.dart';
-import 'package:game_tracker/widgets/glass_app_bar.dart';
-import 'package:game_tracker/screens/game_details_screen.dart'
-    show NotificationService;
+import 'package:game_stash/models/giveaway.dart';
+import 'package:game_stash/utils/constants.dart';
+import 'package:game_stash/widgets/glass_app_bar.dart';
+import 'package:game_stash/services/notification_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
@@ -31,7 +30,7 @@ Color _remainingColor(DateTime? endDate) {
   return kErrorColor;
 }
 
-// ==================== КОНСТАНТЫ ====================
+// ==================== РљРћРќРЎРўРђРќРўР« ====================
 
 class _Dimens {
   static const double paddingScreen = 12.0;
@@ -69,7 +68,7 @@ class _Strings {
   static const notifyUnavailable = 'Дата окончания неизвестна';
 }
 
-// ==================== ВИДЖЕТЫ ====================
+// ==================== Р’РР”Р–Р•РўР« ====================
 
 class _HeaderImage extends StatelessWidget {
   final Giveaway giveaway;
@@ -101,12 +100,12 @@ class _HeaderImage extends StatelessWidget {
           errorWidget: (_, __, ___) => Container(
             height: 200,
             color: isDark ? kPlaceholderColor : Colors.grey.shade200,
-            child: Column(
+            child: const Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.broken_image, color: Colors.grey, size: 48),
-                const SizedBox(height: _Dimens.spacingMedium),
-                const Text(
+                Icon(Icons.broken_image, color: Colors.grey, size: 48),
+                SizedBox(height: _Dimens.spacingMedium),
+                Text(
                   _Strings.imagePlaceholder,
                   style: TextStyle(
                       color: Colors.grey, fontSize: _Dimens.fontSizeBody),
@@ -458,10 +457,10 @@ class _ActionButtonSection extends StatelessWidget {
   }
 }
 
-// ==================== КОЛОКОЛЬЧИК ====================
-// ИСПРАВЛЕНИЕ: убран tooltip — он перехватывал tap и показывал подсказку
-// вместо действия. Вместо него используется GestureDetector с onTap.
-// Визуальная обратная связь — InkWell + анимация иконки.
+// ==================== РљРћР›РћРљРћР›Р¬Р§РРљ ====================
+// РРЎРџР РђР’Р›Р•РќРР•: СѓР±СЂР°РЅ tooltip вЂ” РѕРЅ РїРµСЂРµС…РІР°С‚С‹РІР°Р» tap Рё РїРѕРєР°Р·С‹РІР°Р» РїРѕРґСЃРєР°Р·РєСѓ
+// РІРјРµСЃС‚Рѕ РґРµР№СЃС‚РІРёСЏ. Р’РјРµСЃС‚Рѕ РЅРµРіРѕ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ GestureDetector СЃ onTap.
+// Р’РёР·СѓР°Р»СЊРЅР°СЏ РѕР±СЂР°С‚РЅР°СЏ СЃРІСЏР·СЊ вЂ” InkWell + Р°РЅРёРјР°С†РёСЏ РёРєРѕРЅРєРё.
 
 class _NotifyButton extends StatefulWidget {
   final Giveaway giveaway;
@@ -477,7 +476,7 @@ class _NotifyButtonState extends State<_NotifyButton> {
   bool _subscribed = false;
   bool _loading = true;
 
-  // Диапазон ID 2_000_000+ — не конфликтует с игровыми уведомлениями
+  // Р”РёР°РїР°Р·РѕРЅ ID 2_000_000+ вЂ” РЅРµ РєРѕРЅС„Р»РёРєС‚СѓРµС‚ СЃ РёРіСЂРѕРІС‹РјРё СѓРІРµРґРѕРјР»РµРЅРёСЏРјРё
   int get _notifId => 2000000 + widget.giveaway.id;
   String get _prefKey => 'giveaway_notify_${widget.giveaway.id}';
 
@@ -555,16 +554,16 @@ class _NotifyButtonState extends State<_NotifyButton> {
 
   @override
   Widget build(BuildContext context) {
-    // Пока грузим состояние — пустое место нужного размера
+    // РџРѕРєР° РіСЂСѓР·РёРј СЃРѕСЃС‚РѕСЏРЅРёРµ вЂ” РїСѓСЃС‚РѕРµ РјРµСЃС‚Рѕ РЅСѓР¶РЅРѕРіРѕ СЂР°Р·РјРµСЂР°
     if (_loading) return const SizedBox(width: 48, height: 48);
 
-    // Для истёкших раздач кнопку не показываем
+    // Р”Р»СЏ РёСЃС‚С‘РєС€РёС… СЂР°Р·РґР°С‡ РєРЅРѕРїРєСѓ РЅРµ РїРѕРєР°Р·С‹РІР°РµРј
     final endDate = widget.giveaway.endDate;
     if (endDate != null && endDate.isBefore(DateTime.now())) {
       return const SizedBox.shrink();
     }
 
-    // GestureDetector вместо IconButton — убирает задержку tooltip
+    // GestureDetector РІРјРµСЃС‚Рѕ IconButton вЂ” СѓР±РёСЂР°РµС‚ Р·Р°РґРµСЂР¶РєСѓ tooltip
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Material(
@@ -599,7 +598,7 @@ class _NotifyButtonState extends State<_NotifyButton> {
   }
 }
 
-// ==================== ОСНОВНОЙ ЭКРАН ====================
+// ==================== РћРЎРќРћР’РќРћР™ Р­РљР РђРќ ====================
 
 class GiveawayDetailsScreen extends StatelessWidget {
   final Giveaway giveaway;

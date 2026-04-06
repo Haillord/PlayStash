@@ -1,18 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:game_tracker/models/feed_state.dart';
-import 'package:game_tracker/models/game.dart';
-import 'package:game_tracker/models/genre.dart';
-import 'package:game_tracker/models/giveaway.dart';
-import 'package:game_tracker/providers/providers.dart';
-import 'package:game_tracker/providers/giveaways_provider.dart';
-import 'package:game_tracker/services/api_service.dart';
-import 'package:game_tracker/theme/app_theme.dart';
-import 'package:game_tracker/utils/constants.dart';
-import 'package:game_tracker/widgets/glass_app_bar.dart';
-import 'package:game_tracker/screens/game_list/game_list_state.dart';
-import 'package:game_tracker/screens/game_list/game_list_widgets.dart';
+import 'package:game_stash/models/feed_state.dart';
+import 'package:game_stash/models/game.dart';
+import 'package:game_stash/models/genre.dart';
+import 'package:game_stash/models/giveaway.dart';
+import 'package:game_stash/providers/providers.dart';
+import 'package:game_stash/providers/giveaways_provider.dart';
+import 'package:game_stash/services/api_service.dart';
+import 'package:game_stash/services/ad_service.dart';
+import 'package:game_stash/theme/app_theme.dart';
+import 'package:game_stash/utils/constants.dart';
+import 'package:game_stash/widgets/glass_app_bar.dart';
+import 'package:game_stash/screens/game_list/game_list_state.dart';
+import 'package:game_stash/screens/game_list/game_list_widgets.dart';
 import 'game_details_screen.dart';
 import 'giveaway_details_screen.dart';
 
@@ -97,9 +98,11 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
 
   void _onSearchChanged(String query) {
     _debounceTimer?.cancel();
+    // Захватываем currentFeed ДО создания таймера, чтобы избежать
+    // устаревшего значения при быстрой смене вкладки.
+    final currentFeed = ref.read(currentFeedTypeProvider);
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       if (!mounted) return;
-      final currentFeed = ref.read(currentFeedTypeProvider);
       ref.read(searchQueryProvider.notifier).state = query.trim();
       ref.read(feedProvider(currentFeed).notifier).load(reset: true);
     });
@@ -181,8 +184,11 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
     }
   }
 
-  void _openGameDetails(Game game) {
-    Navigator.push(
+  Future<void> _openGameDetails(Game game) async {
+    if (!mounted) return;
+    // Сначала переходим — пользователь не чувствует задержки.
+    // Реклама показывается поверх как системный оверлей и не мешает стеку навигации.
+    unawaited(Navigator.push(
       context,
       MaterialPageRoute(
         builder:
@@ -191,7 +197,9 @@ class _GameListScreenState extends ConsumerState<GameListScreen>
               isDark: ref.read(themeModeProvider) == AppThemeMode.dark,
             ),
       ),
-    );
+    ));
+    // Показываем межстраничную рекламу уже после перехода (каждые 5 открытий).
+    AdService.instance.onGameOpened(context);
   }
 
   void _openGiveawayDetails(Giveaway giveaway) {

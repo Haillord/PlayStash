@@ -13,8 +13,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:game_tracker/models/giveaway.dart';
-import 'package:game_tracker/services/api_service.dart';
+import 'package:game_stash/models/giveaway.dart';
+import 'package:game_stash/services/api_service.dart';
 
 // Sentinel-объект: означает "не менять это значение"
 // Используется внутри updateFilters чтобы различить

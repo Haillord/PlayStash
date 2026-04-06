@@ -1,21 +1,21 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:game_tracker/models/feed_state.dart';
-import 'package:game_tracker/models/game.dart';
-import 'package:game_tracker/models/genre.dart';
-import 'package:game_tracker/models/giveaway.dart';
-import 'package:game_tracker/providers/giveaways_provider.dart';
-import 'package:game_tracker/providers/providers.dart';
-import 'package:game_tracker/services/api_service.dart';
-import 'package:game_tracker/utils/breakpoints.dart';
-import 'package:game_tracker/utils/constants.dart';
-import 'package:game_tracker/widgets/connection_indicator.dart';
-import 'package:game_tracker/widgets/game_card.dart';
-import 'package:game_tracker/widgets/giveaway_card.dart';
+import 'package:game_stash/models/feed_state.dart';
+import 'package:game_stash/models/game.dart';
+import 'package:game_stash/models/genre.dart';
+import 'package:game_stash/models/giveaway.dart';
+import 'package:game_stash/providers/giveaways_provider.dart';
+import 'package:game_stash/providers/providers.dart';
+import 'package:game_stash/services/api_service.dart';
+import 'package:game_stash/utils/breakpoints.dart';
+import 'package:game_stash/utils/constants.dart';
+import 'package:game_stash/widgets/connection_indicator.dart';
+import 'package:game_stash/widgets/game_card.dart';
+import 'package:game_stash/widgets/giveaway_card.dart';
 
 import 'game_list_state.dart';
 
@@ -140,7 +140,7 @@ class GameListActiveFiltersBar extends ConsumerWidget {
         children: [
           if (searchQuery.isNotEmpty)
             _buildChip(
-              'РџРѕРёСЃРє: $searchQuery',
+              'Поиск: $searchQuery',
               color: kNeonGreen,
               isDark: isDark,
               onClear: onClearSearch,
@@ -487,7 +487,7 @@ class GameListGiveawaysFiltersBottomSheet extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text('РўРёРї', style: labelStyle),
+                Text('Тип', style: labelStyle),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -590,10 +590,14 @@ class _GamesTabContentState extends ConsumerState<GameListGamesTabContent>
       );
     }
     final game = feedState.games[index];
-    return GameCard(
-      key: ValueKey('game_${game.id}'),
-      game: game,
-      onTap: () => widget.onGameTap(game),
+    // RepaintBoundary уже есть внутри GameCard, но добавляем снаружи тоже —
+    // это изолирует перерисовку каждой ячейки грида от соседних.
+    return RepaintBoundary(
+      child: GameCard(
+        key: ValueKey('game_${game.id}'),
+        game: game,
+        onTap: () => widget.onGameTap(game),
+      ),
     );
   }
 
@@ -708,8 +712,7 @@ class _GamesTabContentState extends ConsumerState<GameListGamesTabContent>
           child: GridView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.all(8),
-            cacheExtent:
-                1200, // увеличено: больше карточек в памяти = плавнее скролл
+            cacheExtent: 2000, // pre-render карточки заранее для плавного скролла
             addRepaintBoundaries: true,
             physics: physics,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

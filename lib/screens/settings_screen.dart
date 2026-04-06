@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:game_tracker/providers/providers.dart';
-import 'package:game_tracker/services/api_service.dart';
-import 'package:game_tracker/services/storage_service.dart';
-import 'package:game_tracker/theme/app_theme.dart';
-import 'package:game_tracker/utils/constants.dart';
-import 'package:game_tracker/widgets/glass_app_bar.dart';
+import 'package:game_stash/models/feed_state.dart';
+import 'package:game_stash/providers/providers.dart';
+import 'package:game_stash/services/api_service.dart';
+import 'package:game_stash/screens/auth_screen.dart';
+import 'package:game_stash/services/storage_service.dart';
+import 'package:game_stash/theme/app_theme.dart';
+import 'package:game_stash/utils/constants.dart';
+import 'package:game_stash/widgets/glass_app_bar.dart';
 
 // ─── Константы секции ─────────────────────────────────────────────────────────
 const _kSectionAlphaLight = 0.4;
@@ -71,6 +73,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await LocalStorageService.clearCache();
       await GameRepository.clearAllCaches();
       if (mounted) {
+        // Инвалидируем провайдеры, чтобы они перезагрузили данные из сети,
+        // а не отдавали устаревшее состояние из памяти.
+        ref.invalidate(myGamesProvider);
+        ref.invalidate(myGamesNotifierProvider);
+        for (final type in FeedType.values) {
+          ref.invalidate(feedProvider(type));
+        }
         setState(() => _cacheSize = '0 МБ');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -201,6 +210,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: Strings.data,
             isDark: isDark,
             children: [
+              ListTile(
+                leading: const Icon(Icons.person, color: kAccent),
+                title: Text('Аккаунт', style: TextStyle(color: textColor)),
+                subtitle: Text(
+                  'Вход, регистрация и облачная синхронизация',
+                  style: TextStyle(color: textColorSecondary),
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  );
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
               ListTile(
                 leading: const Icon(Icons.delete, color: kErrorColor),
                 title: Text(Strings.clearCache,

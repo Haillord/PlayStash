@@ -1,0 +1,5 @@
+alias: upload
+keystore: C:\Users\Haillord\upload-keystore.jks
+(у тебя копия: D:\Project\assets\upload-keystore.jks)
+SHA-1: 58:2E:8F:DB:8F:97:EC:33:F9:37:0F:2C:65:B7:0B:AE:0B:D9:09:11
+SHA-256: AC:80:F2:B3:60:60:C3:72:EA:E0:B5:1B:E6:20:FB:8E:42:75:3B:5B:F7:CD:27:81:D3:6F:63:55:C3:BE:76:2E

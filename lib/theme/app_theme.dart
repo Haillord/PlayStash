@@ -18,20 +18,16 @@ class AppTheme {
   static ThemeData getTheme(bool isDark) {
     final colorScheme = isDark
         ? const ColorScheme.dark(
-            background: kBgColorDark,
             surface: kCardColorDark,
             primary: kAccent,
             onPrimary: Colors.white,
-            onBackground: kTextColorDark,
             onSurface: kTextColorDark,
             error: kErrorColor,
           )
         : const ColorScheme.light(
-            background: kBgColorLight,
             surface: kCardColorLight,
             primary: kAccent,
             onPrimary: Colors.white,
-            onBackground: kTextColorLight,
             onSurface: kTextColorLight,
             error: kErrorColor,
           );
@@ -157,6 +153,14 @@ class AppTheme {
           borderSide:
               const BorderSide(color: kAccent, width: 1.5),
         ),
+      ),
+
+      // Переходы между экранами — быстрее дефолтных
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
       ),
 
       // Divider
