@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/github/actions/workflow/status/Haillord/gamestash/build.yml?style=for-the-badge&label=Build" alt="build">
 </p>
 
-<h1 align="center">GameStash</h1>
+<h1 align="center">PlayStash</h1>
 
 <p align="center">
   <b>Современное мобильное приложение для отслеживания раздач игр и бесплатных предметов.</b><br>
