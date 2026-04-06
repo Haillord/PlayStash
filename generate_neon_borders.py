@@ -4,7 +4,7 @@ import colorsys
 
 # Параметры
 WIDTH = 10
-HEIGHT = 5000
+HEIGHT = 3000
 FRAMES = 90
 COLOR = (255, 59, 48)  # Красный iOS стиль
 
