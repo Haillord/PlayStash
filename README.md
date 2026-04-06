@@ -1,8 +1,4 @@
 <p align="center">
-  <img src="banner.svg" width="100%" alt="PlayStash Banner">
-</p>
-
-<p align="center">
   <img src="banner.png" width="100%" alt="GameStash Banner">
 </p>
 
@@ -12,11 +8,8 @@
   <img src="https://img.shields.io/github/actions/workflow/status/Haillord/gamestash/build.yml?style=for-the-badge&label=Build" alt="build">
 </p>
 
-<h1 align="center">PlayStash</h1>
-
 <p align="center">
-  <b>Современное мобильное приложение для отслеживания раздач игр и бесплатных предметов.</b><br>
-  Flutter, Firebase, кэширование, пуш уведомления и встроенный ИИ ассистент.
+  <img src="banner.svg" width="100%" alt="PlayStash Banner">
 </p>
 
 ---
