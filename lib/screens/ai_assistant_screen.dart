@@ -24,7 +24,7 @@ class _Dimens {
 }
 
 // Сколько бесплатных вопросов до рекламы
-const _kFreeMessages = 3;
+const _kFreeMessages = 999;
 const _kFreeCountKey = 'ai_free_count';
 const _kWarningShownKey = 'ai_warning_shown';
 
@@ -43,7 +43,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   bool _isLoading = false;
   bool _waitingForAd = false; // блокируем пока показывается реклама
 
-  AiProvider _selectedProvider = AiProvider.openRouter;
   late AiService _aiService;
 
   int _freeLeft = _kFreeMessages; // оставшихся бесплатных вопросов
@@ -51,7 +50,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   @override
   void initState() {
     super.initState();
-    _aiService = AiServiceFactory.create(_selectedProvider);
+    _aiService = AiServiceFactory.create(AiProvider.openRouter);
     _messages.add({
       'role': 'assistant',
       'text':
@@ -77,9 +76,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   Future<void> _showRegionWarningIfNeeded() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_kWarningShownKey) ?? false) return;
-    await prefs.setBool(_kWarningShownKey, true);
     if (!mounted) return;
     showDialog(
       context: context,
@@ -109,19 +105,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         );
       }
     });
-  }
-
-  void _changeProvider(AiProvider? newProvider) {
-    if (newProvider == null || newProvider == _selectedProvider) return;
-    setState(() {
-      _selectedProvider = newProvider;
-      _aiService = AiServiceFactory.create(newProvider);
-      _messages.add({
-        'role': 'system',
-        'text': '🤖 Ассистент изменен на ${newProvider.displayName}',
-      });
-    });
-    _scrollToBottom();
   }
 
   // Отправка сообщения
@@ -206,7 +189,24 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     _controller.clear();
     _scrollToBottom();
 
-    final answer = await _aiService.ask(text);
+    // Подготавливаем историю для API: фильтруем системные сообщения и мапим поля
+    final filteredMessages = _messages
+        .where((m) => m['role'] == 'user' || m['role'] == 'assistant')
+        .toList();
+    
+    // Убираем только что добавленное текущее сообщение (чтобы не дублировалось)
+    if (filteredMessages.isNotEmpty) {
+      filteredMessages.removeLast();
+    }
+    
+    final historyForApi = filteredMessages
+        .map((m) => {
+            'role': m['role']!,
+            'content': m['text']!,
+        })
+        .toList();
+
+    final answer = await _aiService.ask(text, history: historyForApi);
 
     if (mounted) {
       setState(() {
@@ -237,6 +237,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
+      primary: false,
       appBar: AppBar(
         title: const Text('AI-помощник'),
         backgroundColor: isDark ? kSurfaceDark : kSurfaceLight,
@@ -250,30 +251,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             color: isDark ? kBorderColorDark : kBorderColorLight,
           ),
         ),
-        actions: [
-          DropdownButton<AiProvider>(
-            value: _selectedProvider,
-            onChanged: _changeProvider,
-            dropdownColor: isDark ? kSurfaceDark : kSurfaceLight,
-            underline: const SizedBox(),
-            icon: Icon(
-              Icons.arrow_drop_down,
-              color: isDark ? Colors.white70 : Colors.black54,
-            ),
-            items: AiProvider.values.map((provider) {
-              return DropdownMenuItem(
-                value: provider,
-                child: Text(
-                  provider.displayName,
-                  style: TextStyle(
-                    color: isDark ? kTextPrimaryDark : kTextPrimaryLight,
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(width: 8),
-        ],
+        actions: const [],
       ),
       body: Stack(
         children: [
@@ -448,72 +426,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         color: isUser
             ? (isDark ? Colors.white : kTextPrimaryLight)
             : (isDark ? kTextPrimaryDark : kTextPrimaryLight),
-      ),
-    );
-  }
-
-  Widget _buildInputArea(bool isDark) {
-    final needsAd = _freeLeft <= 0;
-
-    return Container(
-      padding: const EdgeInsets.all(_Dimens.paddingScreen),
-      decoration: BoxDecoration(
-        color: isDark ? kSurfaceDark : kSurfaceLight,
-        border: Border(
-          top: BorderSide(
-            color: isDark ? kBorderColorDark : kBorderColorLight,
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                enabled: !_waitingForAd,
-                style: TextStyle(
-                  color: isDark ? kTextPrimaryDark : kTextPrimaryLight,
-                  fontSize: _Dimens.fontSizeBody,
-                ),
-                decoration: InputDecoration(
-                  hintText: _waitingForAd
-                      ? 'Смотрим рекламу...'
-                      : needsAd
-                          ? 'Нажми ▶ чтобы посмотреть рекламу...'
-                          : 'Напиши, что хочешь...',
-                  hintStyle: TextStyle(
-                    color: isDark ? kTextSecondaryDark : kTextSecondaryLight,
-                    fontSize: _Dimens.fontSizeBody,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(_Dimens.borderRadiusInput),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: isDark ? kSurface2Dark : Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: _Dimens.spacingLarge,
-                    vertical: _Dimens.spacingMedium,
-                  ),
-                ),
-                onSubmitted: (_) => _sendMessage(),
-              ),
-            ),
-            const SizedBox(width: _Dimens.spacingMedium),
-            FloatingActionButton(
-              onPressed: _isLoading || _waitingForAd ? null : _sendMessage,
-              backgroundColor:
-                  _isLoading || _waitingForAd ? Colors.grey : kAccent,
-              foregroundColor: Colors.white,
-              mini: true,
-              child: Icon(needsAd ? Icons.play_arrow : Icons.send),
-            ),
-          ],
-        ),
       ),
     );
   }

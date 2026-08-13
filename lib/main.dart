@@ -1,11 +1,14 @@
 // lib/main.dart
 
+import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:game_stash/firebase_options.dart';
 import 'package:game_stash/screens/main_screen.dart';
 import 'package:game_stash/services/ad_service.dart';
 import 'package:game_stash/services/firebase_service.dart';
@@ -18,10 +21,15 @@ import 'package:game_stash/providers/providers.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+  // На ПК не блокируем ориентацию — мониторы не портретные
+  if (!kIsWeb && Platform.isWindows) {
+    await SystemChrome.setPreferredOrientations([]);
+  } else {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
   ));
@@ -29,17 +37,36 @@ void main() async {
   await dotenv.load(fileName: 'assets/.env');
   await LocalStorageService.init();
 
-  // Firebase — инициализируем до всего остального
-  await Firebase.initializeApp();
-  await FirebaseService.instance.init();
-
-  await NotificationService.instance.init();
-  await GiveawayWorker.init();
-
-  // Яндекс реклама
-  await AdService.instance.init();
+  // Firebase Core — используем DefaultFirebaseOptions для Windows, чтобы Firebase работал
+  try {
+    if (!kIsWeb && Platform.isWindows) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } else {
+      await Firebase.initializeApp();
+    }
+    debugPrint('✅ Firebase initialized successfully');
+  } catch (e, stack) {
+    debugPrint('Firebase init error (non-fatal): $e\n$stack');
+  }
 
   runApp(const ProviderScope(child: MyApp()));
+
+  // ✅ ИНИЦИАЛИЗАЦИЯ СЕРВИСОВ В ФОНЕ
+  // Тяжелые инициализации делаем ПОСЛЕ того как пользователь уже видит интерфейс
+  try {
+    FirebaseService.instance.init();
+  } catch (e) {
+    debugPrint('FirebaseService init error (non-fatal): $e');
+  }
+  NotificationService.instance.init();
+  GiveawayWorker.init();
+  try {
+    AdService.instance.init();
+  } catch (e) {
+    debugPrint('AdService init error (non-fatal): $e');
+  }
 }
 
 class MyApp extends ConsumerWidget {
@@ -57,9 +84,8 @@ class MyApp extends ConsumerWidget {
           ? ThemeMode.dark
           : ThemeMode.light,
       scrollBehavior: const _NoGlowScrollBehavior(),
-      navigatorObservers: [
-        FirebaseService.instance.observer,
-      ],
+      // Firebase observer опционален — если Firebase не инициализирован, не используем
+      navigatorObservers: _firebaseObserver(),
       supportedLocales: const [
         Locale('en', 'US'),
         Locale('ru', 'RU'),
@@ -67,6 +93,14 @@ class MyApp extends ConsumerWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: const MainScreen(),
     );
+  }
+}
+
+List<NavigatorObserver> _firebaseObserver() {
+  try {
+    return [FirebaseService.instance.observer];
+  } catch (_) {
+    return [];
   }
 }
 

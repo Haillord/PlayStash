@@ -138,13 +138,13 @@ class _GameImage extends StatelessWidget {
     return Positioned.fill(
       child: Hero(
         tag: 'game_$gameId',
-        child: CachedNetworkImage(
-          imageUrl: url,
-          fit: BoxFit.cover,
+          child: CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.cover,
           cacheManager: GameImageCacheManager(),
-          memCacheWidth: 200,
-          memCacheHeight: 280,
-          filterQuality: FilterQuality.medium,
+          memCacheWidth: 420,
+          memCacheHeight: 320,
+          filterQuality: FilterQuality.low,
           placeholder: (_, __) => _loadingPlaceholder,
           errorWidget: (_, __, ___) => _placeholder,
           fadeInDuration: const Duration(milliseconds: 120),
@@ -165,7 +165,7 @@ class _GradientOverlay extends StatelessWidget {
     gradient: LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [Colors.transparent, Colors.black87, Colors.black],
+      colors: [Colors.transparent, Colors.black54, Colors.black87],
     ),
   );
 
@@ -176,7 +176,7 @@ class _GradientOverlay extends StatelessWidget {
       right: 0,
       bottom: 0,
       child: SizedBox(
-        height: 120,
+        height: 100,
         child: DecoratedBox(decoration: _decoration),
       ),
     );

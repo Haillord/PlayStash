@@ -719,7 +719,7 @@ class _GamesTabContentState extends ConsumerState<GameListGamesTabContent>
               crossAxisCount: crossAxisCount,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
-              childAspectRatio: 1.0,
+            childAspectRatio: 1.70,
             ),
             itemCount: itemCount,
             itemBuilder: (context, i) => _buildItem(context, feedState, i),
@@ -826,8 +826,7 @@ class _GiveawaysTabContentState
           child: LayoutBuilder(
             builder: (context, constraints) {
               final crossAxisCount = _getCrossAxisCount(constraints.maxWidth);
-              final childAspectRatio =
-                  constraints.maxWidth < Breakpoints.mobile ? 0.8 : 0.85;
+              final childAspectRatio = 1.6;
 
               return GridView.builder(
                 padding: const EdgeInsets.all(8),

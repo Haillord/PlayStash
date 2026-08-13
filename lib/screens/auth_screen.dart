@@ -1,10 +1,13 @@
 // lib/screens/auth_screen.dart
 
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:game_stash/providers/auth_provider.dart';
 import 'package:game_stash/services/firebase_service.dart';
+import 'package:game_stash/services/google_auth_desktop.dart';
 import 'package:game_stash/utils/constants.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
@@ -110,7 +113,13 @@ class _SignInViewState extends State<_SignInView> {
       _loading = true;
       _error = null;
     });
-    await FirebaseService.instance.signInWithGoogle();
+
+    if (!kIsWeb && Platform.isWindows) {
+      await GoogleAuthDesktop.signIn();
+    } else {
+      await FirebaseService.instance.signInWithGoogle();
+    }
+
     if (mounted) setState(() => _loading = false);
   }
 

@@ -48,6 +48,7 @@ dependencies:
 
   # Утилиты
   async: ^2.11.0
+  crypto: ^3.0.3
 
   # State management
   flutter_riverpod: ^2.5.1

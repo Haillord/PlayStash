@@ -6,7 +6,7 @@ class AiServiceFactory {
   static AiService create(AiProvider provider) {
     switch (provider) {
       case AiProvider.openRouter:
-        return OpenRouterService();
+        return GroqService();
     }
   }
 }

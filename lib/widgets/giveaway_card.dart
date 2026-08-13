@@ -73,10 +73,18 @@ class GiveawayCard extends StatelessWidget {
   // ---------------------------------------------------------------------------
 
   Widget _buildCompact(BuildContext context, bool isExpired) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: kCardColorDark,
+        borderRadius: BorderRadius.circular(16),
+        color: isDark ? kCardColorDark : kCardColorLight,
+        border: Border.all(
+          color: isDark
+              ? const Color(0x1AFFFFFF) // white 10%
+              : const Color(0x0D000000), // black 5%
+          width: 1,
+        ),
       ),
       clipBehavior: Clip.hardEdge,
       child: Stack(

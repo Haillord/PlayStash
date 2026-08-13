@@ -1,7 +1,9 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yandex_mobileads/mobile_ads.dart';
-import 'dart:async';
 
 const _kBannerAdUnitId = 'R-M-18710519-1';
 const _kBannerHiddenUntilKey = 'banner_hidden_until_ms';
@@ -148,6 +150,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // На десктопе Яндекс.Реклама не поддерживается
+    if (!kIsWeb &&
+        (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+      return const SizedBox.shrink();
+    }
+
     if (!_isVisibilityReady || _isTemporarilyHidden || _bannerAd == null) {
       return const SizedBox.shrink();
     }
